@@ -1,0 +1,543 @@
+// Voxora Database Schema
+// Multi-tenant SIP voice broadcasting platform
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ─────────────────────────────────────────
+// Authentication & Users
+// ─────────────────────────────────────────
+
+model User {
+  id                String    @id @default(uuid())
+  email             String    @unique
+  passwordHash      String
+  firstName         String
+  lastName          String
+  role              UserRole  @default(USER)
+  status            UserStatus @default(PENDING)
+  emailVerified     Boolean   @default(false)
+  emailVerifyToken  String?
+  passwordResetToken String?
+  passwordResetExpiry DateTime?
+  avatarUrl         String?
+  phone             String?
+  timezone          String    @default("UTC")
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+  lastLoginAt       DateTime?
+
+  // Multi-tenant: user belongs to an org
+  organizationId    String?
+  organization      Organization? @relation(fields: [organizationId], references: [id])
+
+  refreshTokens     RefreshToken[]
+  sipAccounts       SipAccount[]
+  contactLists      ContactList[]
+  audioFiles        AudioFile[]
+  campaigns         Campaign[]
+  apiKeys           ApiKey[]
+
+  @@index([email])
+  @@index([organizationId])
+}
+
+enum UserRole {
+  SUPER_ADMIN
+  ADMIN
+  USER
+  VIEWER
+}
+
+enum UserStatus {
+  PENDING
+  ACTIVE
+  SUSPENDED
+  DELETED
+}
+
+model Organization {
+  id          String    @id @default(uuid())
+  name        String
+  slug        String    @unique
+  plan        BillingPlan @default(TRIAL)
+  status      OrgStatus   @default(ACTIVE)
+  logoUrl     String?
+  website     String?
+  timezone    String    @default("UTC")
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  users       User[]
+  subscription Subscription?
+
+  @@index([slug])
+}
+
+enum OrgStatus {
+  ACTIVE
+  SUSPENDED
+  DELETED
+}
+
+model RefreshToken {
+  id          String    @id @default(uuid())
+  token       String    @unique
+  userId      String
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  expiresAt   DateTime
+  createdAt   DateTime  @default(now())
+  revoked     Boolean   @default(false)
+
+  @@index([token])
+  @@index([userId])
+}
+
+model ApiKey {
+  id          String    @id @default(uuid())
+  name        String
+  keyHash     String    @unique
+  prefix      String
+  userId      String
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  lastUsedAt  DateTime?
+  expiresAt   DateTime?
+  createdAt   DateTime  @default(now())
+  active      Boolean   @default(true)
+
+  @@index([keyHash])
+}
+
+// ─────────────────────────────────────────
+// SIP Accounts
+// ─────────────────────────────────────────
+
+model SipAccount {
+  id              String    @id @default(uuid())
+  name            String
+  userId          String
+  user            User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  sipServer       String
+  sipPort         Int       @default(5060)
+  username        String
+  passwordHash    String
+  transport       SipTransport @default(UDP)
+  proxy           String?
+  outboundProxy   String?
+  fromDomain      String?
+  callerIdName    String?
+  callerIdNumber  String?
+
+  maxConcurrentCalls Int    @default(10)
+  callsPerSecond  Float     @default(1.0)
+
+  status          SipAccountStatus @default(UNREGISTERED)
+  lastCheckedAt   DateTime?
+  lastError       String?
+  registrationExpiry DateTime?
+
+  active          Boolean   @default(true)
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  campaigns       Campaign[]
+  sipLogs         SipLog[]
+
+  @@index([userId])
+}
+
+enum SipTransport {
+  UDP
+  TCP
+  TLS
+}
+
+enum SipAccountStatus {
+  REGISTERED
+  UNREGISTERED
+  REGISTERING
+  FAILED
+  TESTING
+}
+
+model SipLog {
+  id            String    @id @default(uuid())
+  sipAccountId  String
+  sipAccount    SipAccount @relation(fields: [sipAccountId], references: [id], onDelete: Cascade)
+  direction     String    // inbound/outbound
+  method        String    // INVITE, REGISTER, BYE, etc.
+  statusCode    Int?
+  message       String
+  raw           String?   @db.Text
+  createdAt     DateTime  @default(now())
+
+  @@index([sipAccountId])
+  @@index([createdAt])
+}
+
+// ─────────────────────────────────────────
+// Contacts
+// ─────────────────────────────────────────
+
+model ContactList {
+  id          String    @id @default(uuid())
+  name        String
+  description String?
+  userId      String
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  totalCount  Int       @default(0)
+  validCount  Int       @default(0)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  contacts    Contact[]
+  campaigns   Campaign[]
+
+  @@index([userId])
+}
+
+model Contact {
+  id              String    @id @default(uuid())
+  listId          String
+  list            ContactList @relation(fields: [listId], references: [id], onDelete: Cascade)
+
+  phone           String
+  firstName       String?
+  lastName        String?
+  email           String?
+  company         String?
+  customFields    Json?
+
+  isValid         Boolean   @default(true)
+  isDuplicate     Boolean   @default(false)
+  isOptedOut      Boolean   @default(false)
+  countryCode     String?
+  formattedPhone  String?
+
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  callLogs        CallLog[]
+
+  @@index([listId])
+  @@index([phone])
+  @@index([isValid])
+}
+
+// ─────────────────────────────────────────
+// Audio Files
+// ─────────────────────────────────────────
+
+model AudioFile {
+  id            String    @id @default(uuid())
+  name          String
+  description   String?
+  userId        String
+  user          User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  filename      String
+  originalName  String
+  mimeType      String
+  size          Int
+  duration      Float?    // seconds
+  bitrate       Int?      // kbps
+  sampleRate    Int?      // Hz
+  channels      Int?
+  format        String?   // wav, mp3
+
+  storageDriver String    @default("local")
+  storagePath   String
+  publicUrl     String?
+
+  status        AudioFileStatus @default(PROCESSING)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  campaignsAsMain       Campaign[] @relation("MainAudio")
+  campaignsAsVoicemail  Campaign[] @relation("VoicemailAudio")
+
+  @@index([userId])
+}
+
+enum AudioFileStatus {
+  PROCESSING
+  READY
+  FAILED
+}
+
+// ─────────────────────────────────────────
+// Campaigns
+// ─────────────────────────────────────────
+
+model Campaign {
+  id                String    @id @default(uuid())
+  name              String
+  description       String?
+  userId            String
+  user              User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  type              CampaignType @default(BROADCAST)
+  status            CampaignStatus @default(DRAFT)
+
+  sipAccountId      String
+  sipAccount        SipAccount @relation(fields: [sipAccountId], references: [id])
+
+  contactListId     String
+  contactList       ContactList @relation(fields: [contactListId], references: [id])
+
+  audioFileId       String
+  audioFile         AudioFile  @relation("MainAudio", fields: [audioFileId], references: [id])
+
+  voicemailAudioId  String?
+  voicemailAudio    AudioFile? @relation("VoicemailAudio", fields: [voicemailAudioId], references: [id])
+
+  maxConcurrentCalls Int       @default(5)
+  callsPerSecond    Float      @default(1.0)
+  retryAttempts     Int        @default(0)
+  retryDelay        Int        @default(300) // seconds
+
+  amdEnabled        Boolean    @default(true)
+  amdAction         AmdAction  @default(PLAY_ON_HUMAN)
+
+  callerIdNumber    String?
+  callerIdName      String?
+
+  scheduledAt       DateTime?
+  startedAt         DateTime?
+  completedAt       DateTime?
+  pausedAt          DateTime?
+
+  totalContacts     Int        @default(0)
+  processedContacts Int        @default(0)
+  answeredCalls     Int        @default(0)
+  humanAnswers      Int        @default(0)
+  machineAnswers    Int        @default(0)
+  failedCalls       Int        @default(0)
+  busyCalls         Int        @default(0)
+  noanswer          Int        @default(0)
+  activeCalls       Int        @default(0)
+  callsPerMinute    Float      @default(0)
+  avgDuration       Float      @default(0)
+  totalDuration     Float      @default(0)
+
+  createdAt         DateTime   @default(now())
+  updatedAt         DateTime   @updatedAt
+
+  callLogs          CallLog[]
+
+  @@index([userId])
+  @@index([status])
+  @@index([sipAccountId])
+}
+
+enum CampaignType {
+  BROADCAST
+  VOICEMAIL_DROP
+}
+
+enum CampaignStatus {
+  DRAFT
+  SCHEDULED
+  RUNNING
+  PAUSED
+  COMPLETED
+  FAILED
+  CANCELLED
+}
+
+enum AmdAction {
+  PLAY_ON_HUMAN
+  VOICEMAIL_DROP
+  HANGUP_ON_MACHINE
+  PLAY_ON_BOTH
+}
+
+// ─────────────────────────────────────────
+// Call Logs
+// ─────────────────────────────────────────
+
+model CallLog {
+  id              String    @id @default(uuid())
+  campaignId      String
+  campaign        Campaign  @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+
+  contactId       String?
+  contact         Contact?  @relation(fields: [contactId], references: [id])
+
+  uuid            String    @unique // FreeSWITCH UUID
+  phone           String
+  direction       String    @default("outbound")
+
+  status          CallStatus
+  hangupCause     String?
+  amdResult       AmdResult?
+
+  startedAt       DateTime  @default(now())
+  answeredAt      DateTime?
+  hangupAt        DateTime?
+  duration        Int?      // seconds
+  billableDuration Int?
+
+  sipResponseCode Int?
+  sipResponseText String?
+
+  rtpPacketsSent   Int?
+  rtpPacketsRecv   Int?
+  rtpPacketsLost   Int?
+  rtpMos          Float?
+  rtpJitter       Float?
+
+  recordingId     String?
+  recording       Recording? @relation(fields: [recordingId], references: [id])
+
+  createdAt       DateTime  @default(now())
+
+  @@index([campaignId])
+  @@index([contactId])
+  @@index([uuid])
+  @@index([status])
+  @@index([createdAt])
+}
+
+enum CallStatus {
+  QUEUED
+  DIALING
+  RINGING
+  ANSWERED
+  BUSY
+  NOANSWER
+  FAILED
+  COMPLETED
+  CANCELLED
+}
+
+enum AmdResult {
+  HUMAN
+  MACHINE
+  FAX
+  NOTSURE
+}
+
+// ─────────────────────────────────────────
+// Recordings
+// ─────────────────────────────────────────
+
+model Recording {
+  id            String    @id @default(uuid())
+  filename      String
+  originalName  String?
+  callUuid      String    @unique
+  duration      Int?
+  size          Int?
+  mimeType      String    @default("audio/wav")
+  storagePath   String
+  publicUrl     String?
+  storageDriver String    @default("local")
+  createdAt     DateTime  @default(now())
+
+  callLogs      CallLog[]
+
+  @@index([callUuid])
+  @@index([createdAt])
+}
+
+// ─────────────────────────────────────────
+// Billing & Subscriptions
+// ─────────────────────────────────────────
+
+model Subscription {
+  id                String    @id @default(uuid())
+  organizationId    String    @unique
+  organization      Organization @relation(fields: [organizationId], references: [id])
+
+  plan              BillingPlan @default(TRIAL)
+  status            SubscriptionStatus @default(ACTIVE)
+
+  stripeCustomerId  String?   @unique
+  stripeSubId       String?   @unique
+  stripePriceId     String?
+
+  maxConcurrentCalls Int      @default(2)
+  maxCampaigns      Int       @default(1)
+  maxContacts       Int       @default(1000)
+  maxAudioFiles     Int       @default(5)
+  maxSipAccounts    Int       @default(1)
+
+  currentPeriodStart DateTime?
+  currentPeriodEnd   DateTime?
+  cancelAtPeriodEnd  Boolean   @default(false)
+  cancelledAt        DateTime?
+
+  trialEndsAt       DateTime?
+
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+
+  invoices          Invoice[]
+  usageRecords      UsageRecord[]
+}
+
+enum BillingPlan {
+  TRIAL
+  STARTER
+  GROWTH
+  PRO
+  ENTERPRISE
+}
+
+enum SubscriptionStatus {
+  ACTIVE
+  PAST_DUE
+  CANCELLED
+  TRIALING
+  INCOMPLETE
+}
+
+model Invoice {
+  id              String    @id @default(uuid())
+  subscriptionId  String
+  subscription    Subscription @relation(fields: [subscriptionId], references: [id])
+
+  stripeInvoiceId String?   @unique
+  amount          Int       // cents
+  currency        String    @default("usd")
+  status          InvoiceStatus @default(DRAFT)
+  pdf             String?
+  hostedUrl       String?
+
+  periodStart     DateTime?
+  periodEnd       DateTime?
+  dueDate         DateTime?
+  paidAt          DateTime?
+
+  createdAt       DateTime  @default(now())
+}
+
+enum InvoiceStatus {
+  DRAFT
+  OPEN
+  PAID
+  VOID
+  UNCOLLECTIBLE
+}
+
+model UsageRecord {
+  id              String    @id @default(uuid())
+  subscriptionId  String
+  subscription    Subscription @relation(fields: [subscriptionId], references: [id])
+
+  metric          String    // concurrent_calls, total_calls, etc.
+  value           Float
+  recordedAt      DateTime  @default(now())
+
+  @@index([subscriptionId])
+  @@index([metric])
+  @@index([recordedAt])
+}

@@ -1,0 +1,43 @@
+<include>
+  <context name="voxora_outbound">
+
+    <!-- Voxora Broadcast Campaign Calls -->
+    <extension name="voxora_broadcast">
+      <condition field="destination_number" expression="^(\+?[0-9]{7,15})$">
+
+        <!-- Enable call recording -->
+        <action application="set" data="RECORD_STEREO=true"/>
+        <action application="set" data="record_waste_resources=true"/>
+
+        <!-- AMD (Answering Machine Detection) -->
+        <action application="set" data="execute_on_answer=lua /opt/voxora/amd_handler.lua"/>
+
+        <!-- Set channel variables from campaign context -->
+        <action application="set" data="ringback=${us-ring}"/>
+        <action application="set" data="call_timeout=60"/>
+        <action application="set" data="hangup_after_bridge=true"/>
+        <action application="set" data="continue_on_fail=false"/>
+
+        <!-- AMD before bridge -->
+        <action application="answer"/>
+        <action application="lua" data="/opt/voxora/amd.lua"/>
+
+        <!-- Bridge to outbound gateway -->
+        <action application="bridge" data="sofia/gateway/${voxora_gateway}/${destination_number}"/>
+
+        <!-- Hangup on bridge failure -->
+        <action application="hangup"/>
+      </condition>
+    </extension>
+
+    <!-- Test call extension -->
+    <extension name="voxora_test">
+      <condition field="destination_number" expression="^test_(\+?[0-9]{7,15})$">
+        <action application="answer"/>
+        <action application="playback" data="tone_stream://%(2000,4000,440,480)"/>
+        <action application="hangup"/>
+      </condition>
+    </extension>
+
+  </context>
+</include>
