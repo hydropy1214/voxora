@@ -19,6 +19,7 @@ import { AnalyticsModule } from './modules/analytics/analytics.module';
 import { BillingModule } from './modules/billing/billing.module';
 import { WebsocketGateway } from './gateways/websocket.gateway';
 import { SipServiceModule } from './services/sip/sip.module';
+import { SystemModule } from './modules/system/system.module';
 import { HealthController } from './health.controller';
 
 @Module({
@@ -75,6 +76,7 @@ import { HealthController } from './health.controller';
     AnalyticsModule,
     BillingModule,
     SipServiceModule,
+    SystemModule,
   ],
   controllers: [HealthController],
   providers: [WebsocketGateway],
