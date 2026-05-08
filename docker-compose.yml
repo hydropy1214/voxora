@@ -2,7 +2,8 @@ version: '3.9'
 
 # ============================================================
 #  Voxora Production Docker Compose
-#  Full telephony stack: FreeSWITCH + Kamailio + RTPengine + Coturn
+#  All services are self-contained — no pre-installation needed.
+#  Run: sudo ./setup.sh  (or: docker compose up -d)
 # ============================================================
 
 x-logging: &default-logging
@@ -10,96 +11,76 @@ x-logging: &default-logging
   options:
     max-size: "50m"
     max-file: "5"
-    labels: "service"
 
-x-restart: &default-restart
+x-restart: &restart-policy
   restart: unless-stopped
 
-x-healthcheck-defaults: &healthcheck-defaults
+x-healthcheck-base: &healthcheck-base
   interval: 30s
   timeout: 10s
   retries: 5
   start_period: 30s
 
 networks:
-  voxora_internal:
+  voxora_net:
     driver: bridge
-    internal: false
     ipam:
       driver: default
       config:
         - subnet: 172.20.0.0/24
           gateway: 172.20.0.1
-  voxora_sip:
-    driver: bridge
-    ipam:
-      driver: default
-      config:
-        - subnet: 172.21.0.0/24
-          gateway: 172.21.0.1
 
 volumes:
   postgres_data:
-    driver: local
   redis_data:
-    driver: local
   uploads_data:
-    driver: local
   freeswitch_recordings:
-    driver: local
   freeswitch_log:
-    driver: local
   freeswitch_db:
-    driver: local
   nginx_ssl:
-    driver: local
   coturn_db:
-    driver: local
-  loki_data:
-    driver: local
 
 services:
 
   # ──────────────────────────────────────────────────────
-  # PostgreSQL 16
+  # PostgreSQL 16 — Primary database
+  # Installed: Docker image (no local install needed)
   # ──────────────────────────────────────────────────────
   postgres:
     image: postgres:16-alpine
-    <<: *default-restart
+    <<: *restart-policy
     container_name: voxora_postgres
     environment:
-      POSTGRES_USER: ${DB_USER:-voxora}
-      POSTGRES_PASSWORD: ${DB_PASSWORD:?DB_PASSWORD is required}
-      POSTGRES_DB: ${DB_NAME:-voxora_db}
-      PGDATA: /var/lib/postgresql/data/pgdata
+      POSTGRES_USER:     ${DB_USER:-voxora}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-voxora_pass}
+      POSTGRES_DB:       ${DB_NAME:-voxora_db}
+      PGDATA:            /var/lib/postgresql/data/pgdata
     volumes:
       - postgres_data:/var/lib/postgresql/data
       - ./scripts/postgres-init.sql:/docker-entrypoint-initdb.d/init.sql:ro
     networks:
-      voxora_internal:
+      voxora_net:
         ipv4_address: 172.20.0.10
     ports:
       - "127.0.0.1:5432:5432"
     healthcheck:
-      <<: *healthcheck-defaults
+      <<: *healthcheck-base
       test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-voxora} -d ${DB_NAME:-voxora_db}"]
       interval: 10s
-      start_period: 10s
+      start_period: 15s
     logging: *default-logging
-    labels:
-      service: "postgres"
-      voxora.role: "database"
 
   # ──────────────────────────────────────────────────────
-  # Redis 7 (cache + BullMQ + pub/sub)
+  # Redis 7 — Cache, BullMQ job queues, pub/sub
+  # Installed: Docker image (no local install needed)
   # ──────────────────────────────────────────────────────
   redis:
     image: redis:7-alpine
-    <<: *default-restart
+    <<: *restart-policy
     container_name: voxora_redis
     command: >
       redis-server
-      --requirepass ${REDIS_PASSWORD:?REDIS_PASSWORD is required}
+      --requirepass ${REDIS_PASSWORD:-voxora_redis}
       --appendonly yes
       --appendfsync everysec
       --maxmemory 512mb
@@ -110,24 +91,24 @@ services:
     volumes:
       - redis_data:/data
     networks:
-      voxora_internal:
+      voxora_net:
         ipv4_address: 172.20.0.11
     ports:
       - "127.0.0.1:6379:6379"
     healthcheck:
-      <<: *healthcheck-defaults
-      test: ["CMD", "redis-cli", "-a", "${REDIS_PASSWORD}", "ping"]
+      <<: *healthcheck-base
+      test: ["CMD", "redis-cli", "-a", "${REDIS_PASSWORD:-voxora_redis}", "ping"]
       interval: 10s
     logging: *default-logging
-    labels:
-      service: "redis"
 
   # ──────────────────────────────────────────────────────
-  # Coturn — STUN/TURN Server
+  # Coturn — STUN/TURN server for NAT traversal
+  # Installed: Docker image coturn/coturn:4.6-alpine
+  # Required ports: 3478/UDP+TCP, 5349/TCP, 10000-20000/UDP
   # ──────────────────────────────────────────────────────
   coturn:
     image: coturn/coturn:4.6-alpine
-    <<: *default-restart
+    <<: *restart-policy
     container_name: voxora_coturn
     network_mode: host
     volumes:
@@ -137,34 +118,28 @@ services:
       - NET_ADMIN
       - NET_BIND_SERVICE
     ulimits:
-      nofile:
-        soft: 65536
-        hard: 65536
+      nofile: { soft: 65536, hard: 65536 }
     healthcheck:
-      test: ["CMD-SHELL", "nc -z localhost 3478 || exit 1"]
+      test: ["CMD-SHELL", "nc -z -w2 127.0.0.1 3478 2>/dev/null && echo ok || exit 1"]
       interval: 30s
       timeout: 10s
       retries: 3
       start_period: 10s
     logging: *default-logging
-    labels:
-      service: "coturn"
-      voxora.role: "stun-turn"
 
   # ──────────────────────────────────────────────────────
-  # RTPengine — RTP media relay
+  # RTPengine — RTP media relay with NAT traversal
+  # Installed: Docker image drachtio/rtpengine
+  # Required ports: 10000-20000/UDP (RTP), 2223/UDP (ng control)
   # ──────────────────────────────────────────────────────
   rtpengine:
     image: drachtio/rtpengine:latest
-    <<: *default-restart
+    <<: *restart-policy
     container_name: voxora_rtpengine
     network_mode: host
     cap_add:
       - NET_ADMIN
       - SYS_NICE
-    environment:
-      - PUBLIC_IP=${PUBLIC_IP:-127.0.0.1}
-      - PRIVATE_IP=${PRIVATE_IP:-127.0.0.1}
     command: >
       rtpengine
       --interface=${PRIVATE_IP:-0.0.0.0}!${PUBLIC_IP:-0.0.0.0}
@@ -172,75 +147,70 @@ services:
       --listen-tcp=127.0.0.1:2222
       --port-min=10000
       --port-max=20000
-      --log-level=6
+      --log-level=5
       --log-facility=daemon
       --tos=184
       --delete-delay=30
       --timeout=60
-      --silent-timeout=3600
-      --final-timeout=10800
       --no-fallback
     ulimits:
-      nofile:
-        soft: 65536
-        hard: 65536
+      nofile: { soft: 65536, hard: 65536 }
     healthcheck:
-      test: ["CMD-SHELL", "nc -z 127.0.0.1 2223 || exit 1"]
+      test: ["CMD-SHELL", "nc -z -w2 127.0.0.1 2223 2>/dev/null && echo ok || exit 1"]
       interval: 30s
       timeout: 10s
       retries: 3
       start_period: 15s
     logging: *default-logging
-    labels:
-      service: "rtpengine"
-      voxora.role: "rtp-relay"
 
   # ──────────────────────────────────────────────────────
-  # Kamailio — SIP Proxy
+  # Kamailio — SIP proxy (outbound routing + RTPengine)
+  # Installed: Docker image kamailio/kamailio:5.7-debian
+  # Required ports: 5060/UDP+TCP (SIP)
   # ──────────────────────────────────────────────────────
   kamailio:
     build:
       context: ./infra/kamailio
       dockerfile: Dockerfile
-    <<: *default-restart
+    <<: *restart-policy
     container_name: voxora_kamailio
     network_mode: host
     volumes:
-      - ./infra/kamailio/kamailio.cfg:/etc/kamailio/kamailio.cfg:ro
-      - ./infra/kamailio/dispatcher.list:/etc/kamailio/dispatcher.list:ro
+      - ./infra/kamailio/kamailio.cfg:/etc/kamailio/kamailio.cfg.tmpl:ro
+      - ./infra/kamailio/dispatcher.list:/etc/kamailio/dispatcher.list.tmpl:ro
     environment:
-      - PUBLIC_IP=${PUBLIC_IP:-127.0.0.1}
-      - PRIVATE_IP=${PRIVATE_IP:-127.0.0.1}
-      - FREESWITCH_IP=127.0.0.1
-      - FREESWITCH_PORT=5080
-      - RTPENGINE_IP=127.0.0.1
-      - RTPENGINE_PORT=2223
-      - KAMAILIO_SIP_PORT=5060
+      PUBLIC_IP:       ${PUBLIC_IP:-127.0.0.1}
+      PRIVATE_IP:      ${PRIVATE_IP:-127.0.0.1}
+      FREESWITCH_IP:   127.0.0.1
+      FREESWITCH_PORT: 5080
+      RTPENGINE_IP:    127.0.0.1
+      RTPENGINE_PORT:  2223
     cap_add:
       - NET_ADMIN
       - NET_BIND_SERVICE
+    ulimits:
+      nofile: { soft: 65536, hard: 65536 }
     depends_on:
       rtpengine:
         condition: service_healthy
     healthcheck:
-      test: ["CMD-SHELL", "nc -z localhost 5060 || exit 1"]
+      test: ["CMD-SHELL", "nc -z -w2 127.0.0.1 5060 2>/dev/null && echo ok || exit 1"]
       interval: 30s
       timeout: 10s
-      retries: 3
-      start_period: 20s
+      retries: 5
+      start_period: 25s
     logging: *default-logging
-    labels:
-      service: "kamailio"
-      voxora.role: "sip-proxy"
 
   # ──────────────────────────────────────────────────────
-  # FreeSWITCH — Media Server
+  # FreeSWITCH — SIP media server + AMD + ESL
+  # Installed: Docker image signalwire/freeswitch:v1.10
+  # Required ports: 5080/UDP+TCP (SIP), 8021/TCP (ESL)
   # ──────────────────────────────────────────────────────
   freeswitch:
     build:
       context: ./infra/freeswitch
       dockerfile: Dockerfile
-    <<: *default-restart
+    <<: *restart-policy
     container_name: voxora_freeswitch
     network_mode: host
     volumes:
@@ -250,60 +220,55 @@ services:
       - freeswitch_db:/var/lib/freeswitch/db
       - uploads_data:/app/uploads:ro
     environment:
-      - PUBLIC_IP=${PUBLIC_IP:-127.0.0.1}
-      - PRIVATE_IP=${PRIVATE_IP:-0.0.0.0}
-      - ESL_PASSWORD=${FREESWITCH_ESL_PASSWORD:?ESL_PASSWORD required}
-      - RTPENGINE_IP=127.0.0.1
-      - RTPENGINE_PORT=2223
+      PUBLIC_IP:   ${PUBLIC_IP:-127.0.0.1}
+      PRIVATE_IP:  ${PRIVATE_IP:-0.0.0.0}
+      ESL_PASSWORD: ${FREESWITCH_ESL_PASSWORD:-ClueCon}
     cap_add:
       - NET_ADMIN
       - NET_BIND_SERVICE
       - SYS_NICE
     ulimits:
-      nofile:
-        soft: 65536
-        hard: 65536
-      memlock:
-        soft: -1
-        hard: -1
-    healthcheck:
-      test: ["CMD-SHELL", "fs_cli -x 'status' 2>/dev/null | grep -q 'UP' || nc -z localhost 8021"]
-      interval: 30s
-      timeout: 15s
-      retries: 5
-      start_period: 45s
+      nofile:    { soft: 65536, hard: 65536 }
+      memlock:   { soft: -1,    hard: -1    }
     depends_on:
       rtpengine:
         condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "nc -z -w3 127.0.0.1 8021 2>/dev/null && echo ok || exit 1"]
+      interval: 30s
+      timeout: 15s
+      retries: 5
+      start_period: 60s
     logging: *default-logging
-    labels:
-      service: "freeswitch"
-      voxora.role: "media-server"
 
   # ──────────────────────────────────────────────────────
   # NestJS Backend API
+  # Built from: apps/backend/Dockerfile
+  # Port: 3001
   # ──────────────────────────────────────────────────────
   backend:
     build:
       context: ./apps/backend
       dockerfile: Dockerfile
       target: production
-    <<: *default-restart
+    <<: *restart-policy
     container_name: voxora_backend
     env_file: .env
     environment:
-      - NODE_ENV=production
-      - DATABASE_URL=${DATABASE_URL}
-      - REDIS_HOST=172.20.0.11
-      - FREESWITCH_HOST=172.20.0.1
-      - FREESWITCH_ESL_PORT=${FREESWITCH_ESL_PORT:-8021}
-      - FREESWITCH_ESL_PASSWORD=${FREESWITCH_ESL_PASSWORD}
+      NODE_ENV:                    production
+      DATABASE_URL:                ${DATABASE_URL}
+      REDIS_HOST:                  172.20.0.11
+      REDIS_PORT:                  6379
+      FREESWITCH_HOST:             172.20.0.1
+      FREESWITCH_ESL_PORT:         ${FREESWITCH_ESL_PORT:-8021}
+      FREESWITCH_ESL_PASSWORD:     ${FREESWITCH_ESL_PASSWORD:-ClueCon}
+      PUBLIC_IP:                   ${PUBLIC_IP:-127.0.0.1}
     volumes:
       - uploads_data:/app/uploads
     ports:
       - "3001:3001"
     networks:
-      voxora_internal:
+      voxora_net:
         ipv4_address: 172.20.0.20
     depends_on:
       postgres:
@@ -311,51 +276,49 @@ services:
       redis:
         condition: service_healthy
     healthcheck:
-      <<: *healthcheck-defaults
-      test: ["CMD-SHELL", "wget -qO- http://localhost:3001/health || exit 1"]
+      <<: *healthcheck-base
+      test: ["CMD-SHELL", "wget -qO- http://localhost:3001/health 2>/dev/null | grep -q ok || exit 1"]
       start_period: 60s
     logging: *default-logging
-    labels:
-      service: "backend"
-      voxora.role: "api"
 
   # ──────────────────────────────────────────────────────
   # Next.js Frontend
+  # Built from: apps/frontend/Dockerfile
+  # Port: 3000
   # ──────────────────────────────────────────────────────
   frontend:
     build:
       context: ./apps/frontend
       dockerfile: Dockerfile
       target: production
-    <<: *default-restart
+    <<: *restart-policy
     container_name: voxora_frontend
     environment:
-      - NODE_ENV=production
-      - NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL:-http://localhost:3001}
-      - NEXT_PUBLIC_WS_URL=${NEXT_PUBLIC_WS_URL:-http://localhost:3001}
-      - NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=${NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY:-}
+      NODE_ENV:                          production
+      NEXT_PUBLIC_API_URL:               ${NEXT_PUBLIC_API_URL:-http://localhost:3001}
+      NEXT_PUBLIC_WS_URL:                ${NEXT_PUBLIC_WS_URL:-http://localhost:3001}
+      NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY: ${NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY:-}
     ports:
       - "3000:3000"
     networks:
-      voxora_internal:
+      voxora_net:
         ipv4_address: 172.20.0.21
     depends_on:
       backend:
         condition: service_healthy
     healthcheck:
-      <<: *healthcheck-defaults
-      test: ["CMD-SHELL", "wget -qO- http://localhost:3000 || exit 1"]
+      <<: *healthcheck-base
+      test: ["CMD-SHELL", "wget -qO- http://localhost:3000 2>/dev/null | grep -q html || exit 1"]
     logging: *default-logging
-    labels:
-      service: "frontend"
-      voxora.role: "web"
 
   # ──────────────────────────────────────────────────────
-  # Nginx — Reverse Proxy + SSL
+  # Nginx — Reverse proxy, SSL termination, rate limiting
+  # Image: nginx:1.25-alpine
+  # Ports: 80 (HTTP), 443 (HTTPS)
   # ──────────────────────────────────────────────────────
   nginx:
     image: nginx:1.25-alpine
-    <<: *default-restart
+    <<: *restart-policy
     container_name: voxora_nginx
     ports:
       - "80:80"
@@ -366,17 +329,14 @@ services:
       - nginx_ssl:/etc/nginx/ssl
       - uploads_data:/app/uploads:ro
     networks:
-      voxora_internal:
+      voxora_net:
         ipv4_address: 172.20.0.22
     depends_on:
       - backend
       - frontend
     healthcheck:
-      test: ["CMD-SHELL", "wget -qO- http://localhost/health 2>/dev/null || nginx -t"]
+      test: ["CMD-SHELL", "wget -qO- http://localhost/health 2>/dev/null || nginx -t 2>/dev/null"]
       interval: 30s
       timeout: 10s
       retries: 3
     logging: *default-logging
-    labels:
-      service: "nginx"
-      voxora.role: "proxy"
