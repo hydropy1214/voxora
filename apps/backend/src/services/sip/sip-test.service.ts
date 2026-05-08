@@ -38,15 +38,16 @@ export class SipTestService {
 
       // Test via FreeSWITCH ESL if connected
       if (this.esl.isConnected()) {
-        // Send SIP OPTIONS probe
-        const gatewayStatus = await this.esl.getGatewayStatus(account.username);
-        result.details.options = gatewayStatus === 'REGISTERED';
-        result.details.register = gatewayStatus === 'REGISTERED';
-        result.success = gatewayStatus === 'REGISTERED';
+        // Check via getSofiaStatus
+        const sofiaStatus = await this.esl.getSofiaStatus();
+        const registered = sofiaStatus.includes('REGED');
+        result.details.options = registered;
+        result.details.register = registered;
+        result.success = registered;
         result.latency = Date.now() - start;
 
         if (!result.success) {
-          result.error = `SIP registration failed. Gateway status: ${gatewayStatus}`;
+          result.error = `SIP registration not confirmed. Run test connection from SIP Accounts page.`;
         }
       } else {
         // Fallback: basic TCP connectivity test

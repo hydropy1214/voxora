@@ -33,7 +33,8 @@ networks:
 volumes:
   postgres_data:
   redis_data:
-  uploads_data:
+  uploads_data:           # Audio files: shared between backend (write) and FreeSWITCH (read)
+  freeswitch_gateways:    # Gateway XML configs: shared between backend (write) and FreeSWITCH (read)
   freeswitch_recordings:
   freeswitch_log:
   freeswitch_db:
@@ -152,7 +153,8 @@ services:
       --tos=184
       --delete-delay=30
       --timeout=60
-      --no-fallback
+      --silent-timeout=3600
+      --num-threads=8
     ulimits:
       nofile: { soft: 65536, hard: 65536 }
     healthcheck:
@@ -215,10 +217,13 @@ services:
     network_mode: host
     volumes:
       - ./infra/freeswitch/conf:/etc/freeswitch:ro
+      # Writable gateway dir: backend writes XML here, FS reads/reloads it
+      - freeswitch_gateways:/var/voxora/gateways
+      # Audio uploads: backend writes MP3/WAV, FS reads them for playback
+      - uploads_data:/app/uploads:ro
       - freeswitch_recordings:/var/lib/freeswitch/recordings
       - freeswitch_log:/var/log/freeswitch
       - freeswitch_db:/var/lib/freeswitch/db
-      - uploads_data:/app/uploads:ro
     environment:
       PUBLIC_IP:   ${PUBLIC_IP:-127.0.0.1}
       PRIVATE_IP:  ${PRIVATE_IP:-0.0.0.0}
@@ -265,6 +270,10 @@ services:
       PUBLIC_IP:                   ${PUBLIC_IP:-127.0.0.1}
     volumes:
       - uploads_data:/app/uploads
+      # Gateway XML configs: backend writes these, FreeSWITCH reads them
+      - freeswitch_gateways:/var/voxora/gateways
+    environment:
+      FREESWITCH_GATEWAY_DIR: /var/voxora/gateways
     ports:
       - "3001:3001"
     networks:

@@ -19,6 +19,7 @@ import { AnalyticsModule } from './modules/analytics/analytics.module';
 import { BillingModule } from './modules/billing/billing.module';
 import { WebsocketGateway } from './gateways/websocket.gateway';
 import { SipServiceModule } from './services/sip/sip.module';
+import { CryptoModule } from './services/crypto/crypto.module';
 import { SystemModule } from './modules/system/system.module';
 import { HealthController } from './health.controller';
 
@@ -75,6 +76,7 @@ import { HealthController } from './health.controller';
     RecordingsModule,
     AnalyticsModule,
     BillingModule,
+    CryptoModule,
     SipServiceModule,
     SystemModule,
   ],
