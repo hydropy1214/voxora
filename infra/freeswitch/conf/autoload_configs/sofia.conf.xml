@@ -1,12 +1,20 @@
-<configuration name="sofia.conf" description="Sofia SIP">
+<configuration name="sofia.conf" description="FreeSWITCH Sofia SIP — Voxora">
   <global_settings>
     <param name="log-level" value="0"/>
     <param name="auto-restart" value="false"/>
     <param name="debug-presence" value="0"/>
-    <param name="capture-server" value="udp:homer.voxora.io:9060"/>
+    <param name="rewrite-multicasted-fs-path" value="1"/>
   </global_settings>
 
   <profiles>
+    <!--
+      ================================================================
+      Voxora Outbound Profile
+      - Handles all outbound SIP calls
+      - NAT traversal via ext-rtp-ip / ext-sip-ip
+      - RTPengine integration for media relay
+      ================================================================
+    -->
     <profile name="voxora_outbound">
       <domains>
         <domain name="all" alias="false" parse="false"/>
@@ -16,48 +24,91 @@
         <param name="debug" value="0"/>
         <param name="sip-trace" value="no"/>
         <param name="sip-capture" value="no"/>
+        <param name="watchdog-enabled" value="no"/>
+
+        <!-- Context for outbound calls -->
         <param name="context" value="voxora_outbound"/>
-        <param name="rtp-ip" value="auto-nat"/>
-        <param name="sip-ip" value="auto-nat"/>
-        <param name="ext-rtp-ip" value="auto-nat"/>
-        <param name="ext-sip-ip" value="auto-nat"/>
+
+        <!-- Network binding -->
+        <param name="rtp-ip" value="$${local_ip_v4}"/>
+        <param name="sip-ip" value="$${local_ip_v4}"/>
+
+        <!-- NAT traversal: use public IP in SDP/SIP for AWS/NAT -->
+        <param name="ext-rtp-ip" value="$${public_ip}"/>
+        <param name="ext-sip-ip" value="$${public_ip}"/>
+
+        <!-- SIP port (different from Kamailio to avoid conflict) -->
         <param name="sip-port" value="5080"/>
         <param name="tls-sip-port" value="5081"/>
+
+        <!-- User agent -->
+        <param name="user-agent-string" value="Voxora/1.0 FreeSWITCH"/>
+
+        <!-- Codec preferences for telephony -->
+        <param name="inbound-codec-prefs" value="PCMU,PCMA,G722,G729"/>
+        <param name="outbound-codec-prefs" value="PCMU,PCMA,G722,G729"/>
+
+        <!-- NAT ACL — trust internal Docker networks -->
         <param name="local-network-acl" value="localnet.auto"/>
-        <param name="manage-presence" value="false"/>
-        <param name="inbound-codec-prefs" value="PCMU,PCMA,G722"/>
-        <param name="outbound-codec-prefs" value="PCMU,PCMA,G722"/>
+        <param name="apply-nat-acl" value="natmap.auto"/>
+
+        <!-- RTP settings -->
         <param name="rtp-timeout-sec" value="300"/>
         <param name="rtp-hold-timeout-sec" value="1800"/>
-        <param name="nonce-ttl" value="60"/>
-        <param name="auth-calls" value="false"/>
-        <param name="inbound-late-negotiation" value="true"/>
-        <param name="inbound-zrtp-passthru" value="true"/>
-        <param name="record-path" value="/var/lib/freeswitch/recordings"/>
-        <param name="record-template" value="${caller_id_number}.${target_domain}.${strftime(%Y-%m-%d-%H-%M-%S)}.wav"/>
-        <param name="hold-music" value="local_stream://moh"/>
-        <param name="apply-nat-acl" value="natmap.auto"/>
-        <param name="enable-100rel" value="false"/>
-        <param name="max-proceeding" value="10000"/>
-        <param name="caller-id-type" value="rpid"/>
+        <param name="rtp-start-port" value="10000"/>
+        <param name="rtp-end-port" value="20000"/>
+
+        <!-- DTMF -->
         <param name="dtmf-duration" value="2000"/>
         <param name="rfc2833-pt" value="101"/>
         <param name="dtmf-type" value="rfc2833"/>
-        <param name="aggressive-nat-detection" value="true"/>
+
+        <!-- Call behavior -->
+        <param name="max-proceeding" value="10000"/>
+        <param name="inbound-late-negotiation" value="true"/>
+        <param name="enable-100rel" value="false"/>
         <param name="enable-timer" value="false"/>
         <param name="session-timeout" value="1800"/>
-        <param name="accept-blind-reg" value="false"/>
-        <param name="accept-blind-auth" value="false"/>
+        <param name="caller-id-type" value="pid"/>
+        <param name="pass-rfc2833" value="true"/>
         <param name="suppress-cng" value="true"/>
         <param name="send-silence-when-idle" value="-1"/>
+
+        <!-- Registration / Auth -->
+        <param name="auth-calls" value="false"/>
+        <param name="accept-blind-reg" value="false"/>
+        <param name="accept-blind-auth" value="false"/>
+        <param name="manage-presence" value="false"/>
+
+        <!-- Recording -->
+        <param name="record-path" value="/var/lib/freeswitch/recordings"/>
+        <param name="record-template" value="${strftime(%Y/%m/%d)}/${caller_id_number}_${destination_number}_${uuid}.wav"/>
+
+        <!-- STUN -->
+        <param name="stun-enabled" value="false"/>
+
+        <!-- TLS (optional) -->
         <param name="tls" value="false"/>
-        <param name="pass-rfc2833" value="true"/>
+        <param name="tls-version" value="tlsv1.2"/>
+
+        <!-- Aggressive NAT detection for AWS -->
+        <param name="aggressive-nat-detection" value="true"/>
+        <param name="nat-options-ping" value="true"/>
+
+        <!-- Hold music -->
+        <param name="hold-music" value="local_stream://moh"/>
+
+        <!-- Inbound media -->
+        <param name="inbound-zrtp-passthru" value="true"/>
         <param name="media-option" value="none"/>
-        <param name="user-agent-string" value="Voxora/1.0"/>
+
+        <!-- T.38 fax (disable for voice broadcasting) -->
+        <param name="t38-passthru" value="false"/>
       </settings>
 
       <gateways>
-        <!-- Gateways are added dynamically via ESL -->
+        <!-- Gateways are loaded dynamically via ESL API calls -->
+        <!-- See SipAccountsService.loadGateway() -->
       </gateways>
     </profile>
   </profiles>

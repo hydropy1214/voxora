@@ -1,41 +1,80 @@
 <include>
   <context name="voxora_outbound">
 
-    <!-- Voxora Broadcast Campaign Calls -->
-    <extension name="voxora_broadcast">
-      <condition field="destination_number" expression="^(\+?[0-9]{7,15})$">
+    <!--
+      ================================================================
+      Voxora Broadcast Call — main outbound dialplan
+      Variables set by campaign processor via ESL:
+        - voxora_campaign_id
+        - voxora_audio_file
+        - voxora_voicemail_audio
+        - voxora_amd_action (PLAY_ON_HUMAN|VOICEMAIL_DROP|HANGUP_ON_MACHINE|PLAY_ON_BOTH)
+        - voxora_gateway (sofia gateway name)
+      ================================================================
+    -->
+    <extension name="voxora_broadcast" continue="false">
+      <condition field="destination_number" expression="^(\+?1?[0-9]{7,15})$" break="on-true">
 
-        <!-- Enable call recording -->
-        <action application="set" data="RECORD_STEREO=true"/>
+        <!-- Call tracking -->
+        <action application="set" data="call_direction=outbound"/>
+        <action application="set" data="effective_caller_id_number=${origination_caller_id_number}"/>
+        <action application="set" data="effective_caller_id_name=${origination_caller_id_name}"/>
+
+        <!-- Recording (path set per-call by campaign processor) -->
+        <action application="set" data="RECORD_STEREO=false"/>
+        <action application="set" data="RECORD_MIN_SEC=2"/>
         <action application="set" data="record_waste_resources=true"/>
 
-        <!-- AMD (Answering Machine Detection) -->
-        <action application="set" data="execute_on_answer=lua /opt/voxora/amd_handler.lua"/>
-
-        <!-- Set channel variables from campaign context -->
-        <action application="set" data="ringback=${us-ring}"/>
-        <action application="set" data="call_timeout=60"/>
+        <!-- Bridge settings -->
         <action application="set" data="hangup_after_bridge=true"/>
         <action application="set" data="continue_on_fail=false"/>
+        <action application="set" data="call_timeout=60"/>
+        <action application="set" data="originate_timeout=60"/>
 
-        <!-- AMD before bridge -->
-        <action application="answer"/>
-        <action application="lua" data="/opt/voxora/amd.lua"/>
+        <!-- Ring tone for caller -->
+        <action application="set" data="ringback=${us-ring}"/>
 
-        <!-- Bridge to outbound gateway -->
+        <!-- Codec negotiation -->
+        <action application="set" data="absolute_codec_string=PCMU,PCMA,G722"/>
+
+        <!-- RTP timeout (hang up on silence) -->
+        <action application="set" data="rtp_timeout_sec=300"/>
+
+        <!-- Bridge to SIP gateway -->
         <action application="bridge" data="sofia/gateway/${voxora_gateway}/${destination_number}"/>
 
-        <!-- Hangup on bridge failure -->
+        <!-- Post-bridge: if bridge failed -->
+        <action application="lua" data="/opt/voxora/call_complete.lua"/>
         <action application="hangup"/>
       </condition>
     </extension>
 
-    <!-- Test call extension -->
-    <extension name="voxora_test">
-      <condition field="destination_number" expression="^test_(\+?[0-9]{7,15})$">
+    <!--
+      Answered call handler — AMD + audio playback
+      This extension is triggered AFTER answer via execute_on_answer
+    -->
+    <extension name="voxora_answered">
+      <condition field="${call_direction}" expression="^outbound$" break="on-true">
         <action application="answer"/>
-        <action application="playback" data="tone_stream://%(2000,4000,440,480)"/>
-        <action application="hangup"/>
+        <action application="lua" data="/opt/voxora/amd.lua"/>
+      </condition>
+    </extension>
+
+    <!--
+      SIP OPTIONS health check (responds 200 OK)
+    -->
+    <extension name="sip_options">
+      <condition field="${sip_req_method}" expression="^OPTIONS$" break="on-true">
+        <action application="respond" data="200 OK"/>
+      </condition>
+    </extension>
+
+    <!--
+      Catch-all — reject unrouted calls
+    -->
+    <extension name="reject_all">
+      <condition field="destination_number" expression="^.*$">
+        <action application="respond" data="403 Forbidden"/>
       </condition>
     </extension>
 
