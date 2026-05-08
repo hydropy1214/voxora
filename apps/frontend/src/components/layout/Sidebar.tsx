@@ -4,7 +4,7 @@ import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import {
   LayoutDashboard, Megaphone, Users, FileAudio, Wifi,
-  Activity, Mic, BarChart3, CreditCard, Settings, Waves, ChevronRight,
+  Activity, Mic, BarChart3, CreditCard, Settings, Waves, ChevronRight, MonitorCheck,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
@@ -42,6 +42,7 @@ const NAV_ITEMS = [
     items: [
       { href: '/billing', label: 'Billing', icon: CreditCard },
       { href: '/settings', label: 'Settings', icon: Settings },
+      { href: '/status', label: 'System Status', icon: MonitorCheck },
     ],
   },
 ]

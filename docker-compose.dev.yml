@@ -1,52 +1,55 @@
 version: '3.9'
 
-# Development override - no FreeSWITCH/Kamailio/RTPengine needed locally
-# Usage: docker compose -f docker-compose.yml -f docker-compose.dev.yml up
-
-networks:
-  voxora_net:
-    driver: bridge
+# ============================================================
+#  Voxora Development Overrides
+#  Usage: docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d
+#  Telephony services are disabled (use --profile telephony to enable)
+# ============================================================
 
 services:
   postgres:
     ports:
       - "5432:5432"
+    environment:
+      POSTGRES_PASSWORD: dev_password
 
   redis:
     ports:
       - "6379:6379"
+    command: redis-server --requirepass dev_redis_pass
 
   backend:
     build:
-      context: ./apps/backend
       target: development
     command: npm run start:dev
     volumes:
-      - ./apps/backend:/app
-      - /app/node_modules
+      - ./apps/backend/src:/app/src
       - uploads_data:/app/uploads
     environment:
-      - NODE_ENV=development
+      NODE_ENV: development
+      DB_PASSWORD: dev_password
+      REDIS_PASSWORD: dev_redis_pass
+      DATABASE_URL: postgresql://voxora:dev_password@postgres:5432/voxora_db?schema=public
+      FREESWITCH_HOST: host.docker.internal
     ports:
       - "3001:3001"
+      - "9229:9229"  # Node.js debugger
 
   frontend:
     build:
-      context: ./apps/frontend
       target: development
     command: npm run dev
     volumes:
-      - ./apps/frontend:/app
-      - /app/node_modules
-      - /app/.next
+      - ./apps/frontend/src:/app/src
+      - ./apps/frontend/public:/app/public
     environment:
-      - NODE_ENV=development
-      - NEXT_PUBLIC_API_URL=http://localhost:3001
-      - NEXT_PUBLIC_WS_URL=http://localhost:3001
+      NODE_ENV: development
+      NEXT_PUBLIC_API_URL: http://localhost:3001
+      NEXT_PUBLIC_WS_URL: http://localhost:3001
     ports:
       - "3000:3000"
 
-  # Disable telephony services in dev
+  # Disable telephony in dev (they need host networking + public IP)
   freeswitch:
     profiles: ["telephony"]
 

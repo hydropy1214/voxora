@@ -1,0 +1,6 @@
+# Kamailio Dispatcher — FreeSWITCH backends
+# Format: setid destination flags priority attrs
+#
+# Set 1: FreeSWITCH outbound gateways
+# FreeSWITCH listens on port 5080 (not 5060 to avoid conflict with Kamailio)
+1 sip:127.0.0.1:5080 0 10 fs_primary
