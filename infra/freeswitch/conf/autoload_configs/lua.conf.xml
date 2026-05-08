@@ -1,6 +1,0 @@
-<configuration name="lua.conf" description="Lua Script Configuration">
-  <settings>
-    <param name="module-directory" value="/usr/lib/lua/5.1/"/>
-    <param name="startup-script" value="/opt/voxora/startup.lua"/>
-  </settings>
-</configuration>
