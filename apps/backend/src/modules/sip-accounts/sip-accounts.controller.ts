@@ -5,7 +5,6 @@ import {
 import { ApiTags, ApiBearerAuth, ApiOperation } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { SipAccountsService } from './sip-accounts.service';
-import { SipTestService } from '../../services/sip/sip-test.service';
 import { CreateSipAccountDto } from './dto/create-sip-account.dto';
 import { UpdateSipAccountDto } from './dto/update-sip-account.dto';
 
@@ -14,10 +13,7 @@ import { UpdateSipAccountDto } from './dto/update-sip-account.dto';
 @UseGuards(JwtAuthGuard)
 @Controller('sip-accounts')
 export class SipAccountsController {
-  constructor(
-    private service: SipAccountsService,
-    private sipTestService: SipTestService,
-  ) {}
+  constructor(private service: SipAccountsService) {}
 
   @Post()
   @ApiOperation({ summary: 'Add a SIP account' })
@@ -51,14 +47,8 @@ export class SipAccountsController {
   }
 
   @Post(':id/test')
-  @ApiOperation({ summary: 'Test SIP connection' })
+  @ApiOperation({ summary: 'Test SIP connection (registers gateway, returns live status)' })
   test(@Req() req, @Param('id') id: string) {
-    return this.sipTestService.testSipAccount(id);
-  }
-
-  @Post(':id/test-rtp')
-  @ApiOperation({ summary: 'Test RTP quality' })
-  testRtp(@Req() req, @Param('id') id: string) {
-    return this.sipTestService.testRtp(id);
+    return this.service.testConnection(req.user.id, id);
   }
 }

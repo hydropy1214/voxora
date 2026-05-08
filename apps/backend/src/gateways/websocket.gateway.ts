@@ -183,6 +183,12 @@ export class WebsocketGateway
     }
   }
 
+  // Broadcast call events to campaign room + live monitor
+  emitCampaignEvent(campaignId: string, event: string, data: any) {
+    this.server.to(`campaign:${campaignId}`).emit(event, data);
+    this.server.to('live-monitor').emit('call:update', { campaignId, event, ...data });
+  }
+
   // Broadcast stats to all live monitor clients
   emitStatsUpdate(stats: any) {
     this.server.to('live-monitor').emit('stats:update', stats);

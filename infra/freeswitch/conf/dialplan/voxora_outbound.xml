@@ -3,75 +3,69 @@
 
     <!--
       ================================================================
-      Voxora Broadcast Call — main outbound dialplan
-      Variables set by campaign processor via ESL:
-        - voxora_campaign_id
-        - voxora_audio_file
-        - voxora_voicemail_audio
-        - voxora_amd_action (PLAY_ON_HUMAN|VOICEMAIL_DROP|HANGUP_ON_MACHINE|PLAY_ON_BOTH)
-        - voxora_gateway (sofia gateway name)
+      Voxora Outbound Call Dialplan
+
+      Call flow:
+        1. CampaignProcessor calls ESL originate with &park()
+        2. FreeSWITCH dials via registered gateway
+        3. On answer: execute_on_answer triggers AMD Lua
+        4. AMD Lua detects HUMAN/MACHINE, plays audio, hangs up
+        5. ESL events flow back to SipService for DB updates
+
+      Channel variables set by CampaignProcessor ESL originate:
+        voxora_campaign_id   — Campaign UUID
+        voxora_call_log_id   — CallLog UUID (for DB update)
+        voxora_audio_file    — Absolute path to audio file (shared volume)
+        voxora_voicemail_audio — Absolute path to voicemail audio
+        voxora_amd_action    — PLAY_ON_HUMAN|VOICEMAIL_DROP|HANGUP_ON_MACHINE|PLAY_ON_BOTH
+        voxora_gateway       — SIP account UUID (= gateway name)
       ================================================================
     -->
-    <extension name="voxora_broadcast" continue="false">
-      <condition field="destination_number" expression="^(\+?1?[0-9]{7,15})$" break="on-true">
 
-        <!-- Call tracking -->
-        <action application="set" data="call_direction=outbound"/>
+    <!-- ── Main outbound call extension ────────────────────────────── -->
+    <extension name="voxora_broadcast" continue="false">
+      <condition field="destination_number" expression="^(\+?[0-9]{7,15})$" break="on-true">
+
+        <!-- Caller ID (set by ESL via origination_caller_id_* vars) -->
         <action application="set" data="effective_caller_id_number=${origination_caller_id_number}"/>
         <action application="set" data="effective_caller_id_name=${origination_caller_id_name}"/>
 
-        <!-- Recording (path set per-call by campaign processor) -->
-        <action application="set" data="RECORD_STEREO=false"/>
-        <action application="set" data="RECORD_MIN_SEC=2"/>
-        <action application="set" data="record_waste_resources=true"/>
-
-        <!-- Bridge settings -->
+        <!-- Call settings -->
+        <action application="set" data="call_direction=outbound"/>
         <action application="set" data="hangup_after_bridge=true"/>
         <action application="set" data="continue_on_fail=false"/>
-        <action application="set" data="call_timeout=60"/>
-        <action application="set" data="originate_timeout=60"/>
+        <action application="set" data="ignore_early_media=false"/>
 
-        <!-- Ring tone for caller -->
+        <!-- Ring tone played back to the originator (cosmetic only) -->
         <action application="set" data="ringback=${us-ring}"/>
 
-        <!-- Codec negotiation -->
-        <action application="set" data="absolute_codec_string=PCMU,PCMA,G722"/>
-
-        <!-- RTP timeout (hang up on silence) -->
+        <!-- RTP timeout: hang up if no RTP for 5 minutes -->
         <action application="set" data="rtp_timeout_sec=300"/>
 
-        <!-- Bridge to SIP gateway -->
+        <!--
+          AMD is triggered AFTER answer via execute_on_answer (set in ESL vars).
+          This means FreeSWITCH first connects the call, then runs the Lua script.
+          The Lua script handles all audio playback and hangup.
+        -->
+
+        <!-- Bridge to the gateway for this campaign's SIP account -->
         <action application="bridge" data="sofia/gateway/${voxora_gateway}/${destination_number}"/>
 
-        <!-- Post-bridge: if bridge failed -->
+        <!-- If bridge fails, fire completion event and hang up -->
         <action application="lua" data="/opt/voxora/call_complete.lua"/>
         <action application="hangup"/>
+
       </condition>
     </extension>
 
-    <!--
-      Answered call handler — AMD + audio playback
-      This extension is triggered AFTER answer via execute_on_answer
-    -->
-    <extension name="voxora_answered">
-      <condition field="${call_direction}" expression="^outbound$" break="on-true">
-        <action application="answer"/>
-        <action application="lua" data="/opt/voxora/amd.lua"/>
-      </condition>
-    </extension>
-
-    <!--
-      SIP OPTIONS health check (responds 200 OK)
-    -->
-    <extension name="sip_options">
-      <condition field="${sip_req_method}" expression="^OPTIONS$" break="on-true">
+    <!-- ── SIP OPTIONS keepalive response ───────────────────────────── -->
+    <extension name="sip_options_response" continue="false">
+      <condition field="${sip_req_method}" expression="^OPTIONS$">
         <action application="respond" data="200 OK"/>
       </condition>
     </extension>
 
-    <!--
-      Catch-all — reject unrouted calls
-    -->
+    <!-- ── Catch-all: reject unknown destinations ────────────────────── -->
     <extension name="reject_all">
       <condition field="destination_number" expression="^.*$">
         <action application="respond" data="403 Forbidden"/>
