@@ -4,7 +4,8 @@ import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import {
   LayoutDashboard, Megaphone, Users, FileAudio, Wifi,
-  Activity, Mic, BarChart3, CreditCard, Settings, PhoneCall, ChevronRight, MonitorCheck,
+  Activity, Mic, BarChart3, CreditCard, Settings, PhoneCall,
+  ChevronRight, MonitorCheck, PhoneOutgoing, FileBarChart2,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
@@ -17,15 +18,16 @@ const NAV_ITEMS = [
     ],
   },
   {
-    label: 'Campaigns',
+    label: 'Calling',
     items: [
+      { href: '/dialer', label: 'Dialer', icon: PhoneOutgoing },
       { href: '/campaigns', label: 'Campaigns', icon: Megaphone },
       { href: '/contacts', label: 'Contacts', icon: Users },
       { href: '/audio-files', label: 'Audio Files', icon: FileAudio },
     ],
   },
   {
-    label: 'Infrastructure',
+    label: 'Configuration',
     items: [
       { href: '/sip-accounts', label: 'SIP Accounts', icon: Wifi },
       { href: '/recordings', label: 'Recordings', icon: Mic },
@@ -35,6 +37,7 @@ const NAV_ITEMS = [
     label: 'Insights',
     items: [
       { href: '/analytics', label: 'Analytics', icon: BarChart3 },
+      { href: '/reports',   label: 'Reports',   icon: FileBarChart2 },
     ],
   },
   {
@@ -42,7 +45,7 @@ const NAV_ITEMS = [
     items: [
       { href: '/billing', label: 'Billing', icon: CreditCard },
       { href: '/settings', label: 'Settings', icon: Settings },
-      { href: '/status', label: 'System Status', icon: MonitorCheck },
+      { href: '/status', label: 'Service Status', icon: MonitorCheck },
     ],
   },
 ]

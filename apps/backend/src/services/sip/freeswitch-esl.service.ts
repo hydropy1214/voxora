@@ -298,6 +298,45 @@ export class FreeswitchEslService implements OnModuleInit, OnModuleDestroy {
   }
 
   /**
+   * Place a direct dialer call (no campaign, no audio file — raw bridge).
+   * Used by the web dialer for click-to-call.
+   */
+  async originateDirect(params: {
+    destination:     string;
+    gatewayId:       string;
+    callerIdNumber?: string;
+    callerIdName?:   string;
+    callId:          string;
+    timeout?:        number;
+  }): Promise<{ uuid: string }> {
+    if (!this.connected) {
+      throw new Error('Calling service not available');
+    }
+
+    const timeout = params.timeout ?? 60;
+    const cidName = (params.callerIdName  || 'CallsPsy').replace(/'/g, '');
+    const cidNum  = (params.callerIdNumber || '').replace(/'/g, '');
+
+    const vars = [
+      `origination_caller_id_name='${cidName}'`,
+      `origination_caller_id_number='${cidNum}'`,
+      `originate_timeout=${timeout}`,
+      `hangup_after_bridge=true`,
+      `callspsy_dialer_id=${params.callId}`,
+    ].join(',');
+
+    const dialString = `{${vars}}sofia/gateway/${params.gatewayId}/${params.destination}`;
+    const command = `originate ${dialString} &park()`;
+
+    const result = await this.executeApi(command);
+    const uuid   = result.replace('+OK', '').trim();
+    if (!uuid) throw new Error(`Empty UUID from FreeSWITCH: "${result}"`);
+
+    this.logger.log(`Dialer call originated: uuid=${uuid} dest=${params.destination}`);
+    return { uuid };
+  }
+
+  /**
    * Hang up an active call by UUID.
    */
   async hangup(uuid: string, cause = 'NORMAL_CLEARING'): Promise<void> {

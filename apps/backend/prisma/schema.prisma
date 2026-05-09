@@ -43,6 +43,7 @@ model User {
   audioFiles        AudioFile[]
   campaigns         Campaign[]
   apiKeys           ApiKey[]
+  dialerLogs        DialerLog[]
 
   @@index([email])
   @@index([organizationId])
@@ -149,6 +150,7 @@ model SipAccount {
 
   campaigns       Campaign[]
   sipLogs         SipLog[]
+  dialerLogs      DialerLog[]
 
   @@index([userId])
 }
@@ -540,4 +542,35 @@ model UsageRecord {
   @@index([subscriptionId])
   @@index([metric])
   @@index([recordedAt])
+}
+
+// ─────────────────────────────────────────
+// Dialer — manual outbound click-to-call
+// ─────────────────────────────────────────
+
+model DialerLog {
+  id              String    @id @default(uuid())
+  callId          String    @unique   // internal dialer call ID
+  userId          String
+  user            User      @relation(fields: [userId], references: [id])
+
+  destination     String    // E.164 number dialed
+  callerIdNumber  String
+  callerIdName    String
+  sipAccountId    String
+  sipAccount      SipAccount @relation(fields: [sipAccountId], references: [id])
+
+  status          String    // INITIATING | RINGING | ANSWERED | COMPLETED | FAILED | BUSY | NO_ANSWER
+  uuid            String?   // FreeSWITCH call UUID
+  duration        Int       @default(0)  // seconds
+  notes           String?
+  hangupCause     String?
+
+  startedAt       DateTime
+  answeredAt      DateTime?
+  endedAt         DateTime?
+
+  @@index([userId])
+  @@index([startedAt])
+  @@index([sipAccountId])
 }

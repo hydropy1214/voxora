@@ -58,7 +58,23 @@ cat > /etc/freeswitch/vars.xml << EOF
 EOF
 echo "[FS] vars.xml written"
 
-# ── 2. Ensure gateway directory exists and is writable ─────────────────────
+# ── 2. Generate self-signed TLS certificate for SIP-TLS ───────────────────
+TLS_DIR="/etc/freeswitch/tls"
+mkdir -p "$TLS_DIR"
+if [ ! -f "$TLS_DIR/agent.pem" ]; then
+  openssl req -x509 -nodes -days 3650 -newkey rsa:2048 \
+    -keyout "$TLS_DIR/agent.key" \
+    -out    "$TLS_DIR/agent.crt" \
+    -subj   "/C=US/ST=CA/O=CallsPsy/CN=${PUBLIC_IP}" 2>/dev/null
+  cat "$TLS_DIR/agent.crt" "$TLS_DIR/agent.key" > "$TLS_DIR/agent.pem"
+  cp "$TLS_DIR/agent.crt" "$TLS_DIR/cafile.pem"
+  cp "$TLS_DIR/agent.pem" "$TLS_DIR/wss.pem"
+  chown -R freeswitch:freeswitch "$TLS_DIR" 2>/dev/null || true
+  chmod 640 "$TLS_DIR"/*.pem "$TLS_DIR"/*.key "$TLS_DIR"/*.crt 2>/dev/null || true
+  echo "[FS] TLS certificates generated"
+fi
+
+# ── 3. Ensure gateway directory exists and is writable ─────────────────────
 mkdir -p "${GATEWAY_DIR}"
 chown -R freeswitch:freeswitch "${GATEWAY_DIR}" 2>/dev/null || true
 chmod 775 "${GATEWAY_DIR}"
