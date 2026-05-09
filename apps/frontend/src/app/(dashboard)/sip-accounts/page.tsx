@@ -30,6 +30,26 @@ function StatusBadge({ status }: { status: string }) {
   )
 }
 
+// ── Known provider presets ───────────────────────────────────────
+const PROVIDER_PRESETS: Record<string, { transport: string; port: number; name?: string }> = {
+  'vonedge.com':   { transport: 'TLS', port: 5061, name: 'Vonage Edge' },
+  'vonage.com':    { transport: 'TLS', port: 5061, name: 'Vonage' },
+  'twilio.com':    { transport: 'TCP', port: 5060, name: 'Twilio' },
+  'telnyx.com':    { transport: 'TLS', port: 5061, name: 'Telnyx' },
+  'signalwire.com':{ transport: 'TLS', port: 5061, name: 'SignalWire' },
+  'bulkvs.com':    { transport: 'UDP', port: 5060, name: 'BulkVS' },
+  'voip.ms':       { transport: 'UDP', port: 5060, name: 'VoIP.ms' },
+}
+
+function detectProvider(host: string): { transport: string; port: number; label: string } | null {
+  for (const [domain, preset] of Object.entries(PROVIDER_PRESETS)) {
+    if (host.toLowerCase().includes(domain)) {
+      return { ...preset, label: preset.name ?? domain }
+    }
+  }
+  return null
+}
+
 // ── Add/Edit SIP Account Form ────────────────────────────────────
 function SipAccountForm({ initial, onSave, onCancel }: {
   initial?: any; onSave: (d: any) => void; onCancel: () => void
@@ -41,7 +61,7 @@ function SipAccountForm({ initial, onSave, onCancel }: {
     username:          initial?.username          ?? '',
     password:          '',
     transport:         initial?.transport         ?? 'UDP',
-    callerIdName:      initial?.callerIdName      ?? 'CallsPsy',
+    callerIdName:      initial?.callerIdName      ?? 'Voxora',
     callerIdNumber:    initial?.callerIdNumber    ?? '',
     maxConcurrentCalls: initial?.maxConcurrentCalls ?? 10,
     callsPerSecond:    initial?.callsPerSecond    ?? 1,
@@ -49,11 +69,26 @@ function SipAccountForm({ initial, onSave, onCancel }: {
     fromDomain:        initial?.fromDomain        ?? '',
   })
   const [showPass, setShowPass] = useState(false)
+  const [detectedProvider, setDetectedProvider] = useState<string | null>(null)
+
   const set = (k: string) => (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) =>
     setForm(f => ({ ...f, [k]: e.target.type === 'number' ? +e.target.value : e.target.value }))
 
   const inputCls = "w-full px-3 py-2.5 rounded-lg bg-background border border-border text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 placeholder:text-muted-foreground"
   const labelCls = "text-xs font-medium text-muted-foreground uppercase tracking-wide"
+
+  // Auto-detect provider from hostname
+  const handleSipServer = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const host = e.target.value
+    setForm(f => ({ ...f, sipServer: host }))
+    const preset = detectProvider(host)
+    if (preset) {
+      setDetectedProvider(preset.label)
+      setForm(f => ({ ...f, transport: preset.transport, sipPort: preset.port }))
+    } else {
+      setDetectedProvider(null)
+    }
+  }
 
   // Auto-set port when transport changes
   const handleTransport = (t: string) => {
@@ -75,9 +110,15 @@ function SipAccountForm({ initial, onSave, onCancel }: {
       <div className="grid grid-cols-3 gap-3">
         <div className="col-span-2 space-y-1.5">
           <label className={labelCls}>SIP Server / Host *</label>
-          <input value={form.sipServer} onChange={set('sipServer')}
-            placeholder="e.g. sip.provider.com or edge3.vonedge.com"
+          <input value={form.sipServer} onChange={handleSipServer}
+            placeholder="e.g. edge3-tlssbc2va.prod.vonedge.com"
             className={inputCls} />
+          {detectedProvider && (
+            <div className="flex items-center gap-1.5 text-xs text-brand-400">
+              <CheckCircle2 className="h-3 w-3" />
+              Auto-configured for {detectedProvider} (transport + port set automatically)
+            </div>
+          )}
         </div>
         <div className="space-y-1.5">
           <label className={labelCls}>Port</label>
@@ -115,7 +156,7 @@ function SipAccountForm({ initial, onSave, onCancel }: {
         {form.transport === 'TLS' && (
           <div className="flex items-start gap-2 px-3 py-2.5 bg-blue-500/10 border border-blue-500/20 rounded-lg text-xs text-blue-300">
             <ShieldCheck className="h-3.5 w-3.5 flex-shrink-0 mt-0.5" />
-            TLS encrypts your SIP signalling. Vonage Edge uses port 5061 with TLS. FreeSWITCH will use a self-signed certificate for outbound TLS.
+            TLS encrypts SIP signalling. Vonage Edge, Telnyx, and SignalWire use port 5061 with TLS + SRTP. Both are automatically enabled by Voxora.
           </div>
         )}
       </div>
@@ -152,7 +193,7 @@ function SipAccountForm({ initial, onSave, onCancel }: {
         <div className="space-y-1.5">
           <label className={labelCls}>Caller ID Name</label>
           <input value={form.callerIdName} onChange={set('callerIdName')}
-            placeholder="CallsPsy" className={inputCls} />
+            placeholder="Voxora" className={inputCls} />
           <p className="text-xs text-muted-foreground">Shown to call recipient (if allowed by provider)</p>
         </div>
         <div className="space-y-1.5">
@@ -279,11 +320,11 @@ function SipAccountCard({ account, onTest, onDelete, testing, onEdit }: {
       )}
 
       {/* ESL hint */}
-      {account.status === 'ESL_DISCONNECTED' || account.status === 'UNREGISTERED' && !account.lastError ? (
+      {(account.status === 'ESL_DISCONNECTED' || (account.status === 'UNREGISTERED' && !account.lastError)) ? (
         <div className="mb-4 flex items-start gap-2 px-3 py-2 bg-muted/30 border border-border rounded-lg">
           <Info className="h-3.5 w-3.5 text-muted-foreground flex-shrink-0 mt-0.5" />
           <p className="text-xs text-muted-foreground">
-            Registration will be active when FreeSWITCH is running. In Docker deploy, start all services first.
+            Registration activates when FreeSWITCH is running. Start all services with <code className="font-mono">docker compose up -d</code> then click &ldquo;Test Registration&rdquo;.
           </p>
         </div>
       ) : null}
@@ -339,7 +380,7 @@ export default function SipAccountsPage() {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['sip-accounts'] })
       setShowForm(false)
-      toast.success('SIP account added — registration will begin when FreeSWITCH is running')
+      toast.success('SIP account added — registration will begin shortly. Click "Test Registration" to verify.')
     },
     onError: (e: any) => toast.error(e.response?.data?.message || 'Failed to add account'),
   })
@@ -411,9 +452,9 @@ export default function SipAccountsPage() {
       {/* Info banner */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
         {[
-          { icon: Globe,       title: 'Any Provider',  desc: 'Twilio, Vonage, Telnyx, BulkVS, VoIP.ms — any SIP provider works' },
-          { icon: ShieldCheck, title: 'TLS + SRTP',    desc: 'Encrypted SIP-TLS and media SRTP supported for secure calling' },
-          { icon: Zap,         title: 'High Volume',   desc: 'Set CPS and concurrency limits to match your plan capacity' },
+          { icon: Globe,       title: 'Any Provider',  desc: 'Vonage Edge, Twilio, Telnyx, BulkVS, VoIP.ms — any SIP provider works' },
+          { icon: ShieldCheck, title: 'TLS + SRTP',    desc: 'SIP-TLS and SRTP media encryption for Vonage Edge and other secure trunks' },
+          { icon: Zap,         title: 'High Volume',   desc: 'Set CPS and concurrency limits to match your provider plan capacity' },
         ].map(b => (
           <div key={b.title} className="flex items-start gap-3 p-3 bg-card border border-border rounded-xl">
             <div className="p-1.5 bg-brand-500/10 rounded-lg flex-shrink-0">
@@ -455,10 +496,10 @@ export default function SipAccountsPage() {
           </div>
           <h3 className="font-semibold text-lg mb-2">No SIP accounts yet</h3>
           <p className="text-muted-foreground text-sm mb-2 max-w-sm mx-auto">
-            Add your SIP provider credentials to start making calls. CallsPsy connects directly via SIP — no third-party telecom API needed.
+            Add your SIP provider credentials to start making calls. Voxora connects directly via SIP — no third-party telecom API needed.
           </p>
           <p className="text-xs text-muted-foreground/60 mb-6">
-            You&apos;ll need: server hostname, username, and password from your SIP provider.
+            You&apos;ll need: server hostname, username, and password from your SIP provider. Works with Vonage Edge, Twilio, Telnyx, BulkVS, and more.
           </p>
           <button
             onClick={() => setShowForm(true)}

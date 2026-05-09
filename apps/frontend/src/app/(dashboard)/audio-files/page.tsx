@@ -49,7 +49,7 @@ export default function AudioFilesPage() {
 
   const togglePlay = (file: any) => {
     const streamUrl = `${process.env.NEXT_PUBLIC_API_URL}/api/audio-files/${file.id}/stream`
-    const authToken = JSON.parse(localStorage.getItem('callspsy-auth') || '{}')?.state?.accessToken
+    const authToken = JSON.parse(localStorage.getItem('voxora-auth') || '{}')?.state?.accessToken
 
     if (playingId === file.id) {
       audioEl?.pause()

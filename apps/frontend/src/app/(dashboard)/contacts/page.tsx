@@ -23,7 +23,7 @@ function downloadTemplate() {
   const blob = new Blob([csv], { type: 'text/csv' })
   const url  = URL.createObjectURL(blob)
   const a    = document.createElement('a')
-  a.href = url; a.download = 'callspsy_contacts_template.csv'; a.click()
+  a.href = url; a.download = 'voxora_contacts_template.csv'; a.click()
   URL.revokeObjectURL(url)
 }
 

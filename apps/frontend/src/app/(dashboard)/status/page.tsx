@@ -75,7 +75,7 @@ export default function StatusPage() {
         <div>
           <h1 className="text-2xl font-bold">System Status</h1>
           <p className="text-muted-foreground text-sm mt-1">
-            Live status of all CallsPsy services
+            Live status of all Voxora services
           </p>
         </div>
         <button
@@ -172,8 +172,8 @@ export default function StatusPage() {
       {/* Subscribe notice */}
       <p className="text-center text-xs text-muted-foreground">
         For urgent issues, contact{' '}
-        <a href="mailto:support@callspsy.com" className="text-brand-400 hover:text-brand-300">
-          support@callspsy.com
+        <a href="mailto:support@voxora.io" className="text-brand-400 hover:text-brand-300">
+          support@voxora.io
         </a>
       </p>
     </div>

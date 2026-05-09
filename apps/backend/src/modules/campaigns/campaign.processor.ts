@@ -106,23 +106,25 @@ export class CampaignProcessor {
       );
     }
 
-    // 3. Verify the SIP gateway is registered
+    // 3. Verify the SIP gateway is registered (wait up to 60s)
     const gwStatus = await this.gatewayManager.getStatus(campaign.sipAccountId);
     if (gwStatus !== 'REGISTERED') {
-      this.logger.warn(`Gateway ${campaign.sipAccountId} status=${gwStatus} — waiting...`);
-      // Wait up to 30s for gateway to register
+      this.logger.warn(`Gateway ${campaign.sipAccountId} status=${gwStatus} — waiting up to 60s...`);
       let waited = 0;
-      while (waited < 30000) {
-        await this.sleep(2000);
-        waited += 2000;
+      let registered = false;
+      while (waited < 60000) {
+        await this.sleep(3000);
+        waited += 3000;
         const s = await this.gatewayManager.getStatus(campaign.sipAccountId);
-        if (s === 'REGISTERED') break;
-        if (waited >= 30000) {
-          throw new Error(
-            `SIP gateway not registered after 30s (status=${s}). ` +
-            'Check SIP account credentials and server connectivity.',
-          );
-        }
+        if (s === 'REGISTERED') { registered = true; break; }
+        this.logger.debug(`Gateway ${campaign.sipAccountId}: status=${s} (${waited}ms elapsed)`);
+      }
+      if (!registered) {
+        const finalStatus = await this.gatewayManager.getStatus(campaign.sipAccountId);
+        throw new Error(
+          `SIP gateway not registered after 60s (status=${finalStatus}). ` +
+          'Check SIP account credentials and server connectivity.',
+        );
       }
     }
     this.logger.log(`Campaign ${campaignId}: gateway registered ✓`);
@@ -130,10 +132,10 @@ export class CampaignProcessor {
     // 4. Load contacts to dial
     const contacts = await this.prisma.contact.findMany({
       where: {
-        listId:     campaign.contactListId,
-        isValid:    true,
+        listId:      campaign.contactListId,
+        isValid:     true,
         isDuplicate: false,
-        isOptedOut: false,
+        isOptedOut:  false,
       },
       orderBy: { createdAt: 'asc' },
     });
@@ -150,81 +152,87 @@ export class CampaignProcessor {
     }
 
     // 5. Dial loop
-    const maxConcurrent  = campaign.maxConcurrentCalls;
-    const cps            = campaign.callsPerSecond;
-    const msPerCall      = Math.floor(1000 / cps);   // min ms between dials
+    const maxConcurrent = campaign.maxConcurrentCalls;
+    const cps           = campaign.callsPerSecond > 0 ? campaign.callsPerSecond : 1;
+    const msPerCall     = Math.max(100, Math.floor(1000 / cps));
 
-    let pendingCalls: Promise<void>[] = [];
-    let dialedCount = 0;
+    // Track active concurrency with a counter + condition variable pattern
+    let activeCount     = 0;
+    let dialedCount     = 0;
+    const allPromises:  Promise<void>[] = [];
+    const startTime     = campaign.startedAt?.getTime() ?? Date.now();
+
+    const wrapCall = async (contact: any): Promise<void> => {
+      activeCount++;
+      try {
+        await this.placeCall(campaign, contact);
+      } catch (err: any) {
+        this.logger.error(
+          `Call error for ${contact.formattedPhone || contact.phone}: ${err.message}`,
+        );
+      } finally {
+        activeCount--;
+      }
+    };
 
     for (const contact of contacts) {
 
       // ── Stop / pause check ──────────────────────────────────────────────
-      const isRunning = this.runningCampaigns.get(campaignId);
-      if (isRunning === false) {
+      if (this.runningCampaigns.get(campaignId) === false) {
         this.logger.log(`Campaign ${campaignId} stopped at ${dialedCount}/${total}`);
         break;
       }
 
-      // Check DB status (handles external pause/stop via API)
-      const fresh = await this.prisma.campaign.findUnique({
-        where: { id: campaignId },
-        select: { status: true },
-      });
-      if (fresh?.status !== 'RUNNING') {
-        this.logger.log(`Campaign ${campaignId} DB status=${fresh?.status}, stopping`);
-        break;
-      }
-
-      // ── Concurrency gate ────────────────────────────────────────────────
-      while (pendingCalls.length >= maxConcurrent) {
-        // Wait for at least one call to finish
-        await Promise.race(pendingCalls);
-        // Clean up settled promises
-        pendingCalls = pendingCalls.filter(p => {
-          let resolved = false;
-          p.then(() => { resolved = true; }).catch(() => { resolved = true; });
-          return !resolved;
+      // Check DB status every 10 contacts to avoid excessive queries
+      if (dialedCount % 10 === 0) {
+        const fresh = await this.prisma.campaign.findUnique({
+          where: { id: campaignId },
+          select: { status: true },
         });
-        // Small sleep to avoid busy-wait
-        await this.sleep(50);
+        if (fresh?.status !== 'RUNNING') {
+          this.logger.log(`Campaign ${campaignId} DB status=${fresh?.status}, stopping`);
+          break;
+        }
       }
 
-      // ── Emit live update ────────────────────────────────────────────────
-      const activeCalls = await this.prisma.callLog.count({
-        where: { campaignId, status: { in: ['DIALING', 'RINGING', 'ANSWERED'] } },
-      });
+      // ── Concurrency gate: poll until a slot opens ────────────────────────
+      while (activeCount >= maxConcurrent) {
+        await this.sleep(100);
+        if (this.runningCampaigns.get(campaignId) === false) break;
+      }
+      if (this.runningCampaigns.get(campaignId) === false) break;
 
-      await this.prisma.campaign.update({
+      // ── Emit live progress update ────────────────────────────────────────
+      const elapsedMinutes = Math.max(0.01, (Date.now() - startTime) / 60000);
+      const cpm = Math.round(dialedCount / elapsedMinutes);
+
+      this.prisma.campaign.update({
         where: { id: campaignId },
-        data: { activeCalls, callsPerMinute: (dialedCount / ((Date.now() - campaign.startedAt!.getTime()) / 60000)) || 0 },
-      });
+        data: { activeCalls: activeCount, callsPerMinute: cpm },
+      }).catch(() => {});
 
       this.wsGateway.emitToUser(userId, 'campaign:progress', {
         campaignId,
         dialedCount,
         total,
-        activeCalls,
+        activeCalls: activeCount,
         percent: Math.round((dialedCount / total) * 100),
+        callsPerMinute: cpm,
       });
 
-      // ── Place call ──────────────────────────────────────────────────────
-      const callPromise = this.placeCall(campaign, contact)
-        .catch(err => this.logger.error(
-          `Call error for ${contact.formattedPhone || contact.phone}: ${err.message}`,
-        ));
-
-      pendingCalls.push(callPromise);
+      // ── Place call (non-blocking) ─────────────────────────────────────────
+      const p = wrapCall(contact);
+      allPromises.push(p);
       dialedCount++;
 
       // Rate limiting — respect callsPerSecond
       await this.sleep(msPerCall);
     }
 
-    // Wait for all in-flight calls to complete
-    if (pendingCalls.length > 0) {
-      this.logger.log(`Campaign ${campaignId}: waiting for ${pendingCalls.length} in-flight calls...`);
-      await Promise.allSettled(pendingCalls);
+    // Wait for all in-flight calls to settle
+    if (allPromises.length > 0) {
+      this.logger.log(`Campaign ${campaignId}: waiting for ${activeCount} in-flight call(s)...`);
+      await Promise.allSettled(allPromises);
     }
 
     // 6. Mark complete

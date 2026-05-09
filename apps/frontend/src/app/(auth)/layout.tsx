@@ -19,7 +19,7 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
             <div className="h-10 w-10 rounded-xl gradient-brand flex items-center justify-center">
               <PhoneCall className="h-5 w-5 text-white" />
             </div>
-            <span className="text-2xl font-bold text-white">CallsPsy</span>
+            <span className="text-2xl font-bold text-white">Voxora</span>
           </Link>
         </div>
 
@@ -50,9 +50,9 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
         </div>
 
         <div className="relative z-10 flex items-center gap-3 text-brand-400 text-sm">
-          <span>© 2026 CallsPsy</span>
+          <span>© 2026 Voxora</span>
           <span>•</span>
-          <span>callspsy.com</span>
+          <span>voxora.io</span>
           <span>•</span>
           <span>Direct SIP Protocol</span>
         </div>
@@ -65,7 +65,7 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
             <div className="h-9 w-9 rounded-xl gradient-brand flex items-center justify-center">
               <PhoneCall className="h-4 w-4 text-white" />
             </div>
-            <span className="text-xl font-bold">CallsPsy</span>
+            <span className="text-xl font-bold">Voxora</span>
           </div>
           {children}
         </div>

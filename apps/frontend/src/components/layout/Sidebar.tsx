@@ -60,7 +60,7 @@ export function Sidebar() {
         <div className="h-8 w-8 rounded-lg gradient-brand flex items-center justify-center flex-shrink-0">
           <PhoneCall className="h-4 w-4 text-white" />
         </div>
-        <span className="font-bold text-lg">CallsPsy</span>
+        <span className="font-bold text-lg">Voxora</span>
       </div>
 
       {/* Navigation */}

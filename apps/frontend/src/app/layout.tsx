@@ -6,9 +6,9 @@ import { Providers } from './providers'
 const inter = Inter({ subsets: ['latin'], variable: '--font-inter' })
 
 export const metadata: Metadata = {
-  title: { default: 'CallsPsy', template: '%s | CallsPsy' },
-  description: 'Cloud-based outbound SIP voice broadcasting platform — callspsy.com',
-  keywords: ['SIP', 'voice broadcasting', 'outbound calling', 'campaign management', 'CallsPsy'],
+  title: { default: 'Voxora', template: '%s | Voxora' },
+  description: 'Cloud-based outbound SIP voice broadcasting platform — voxora.io',
+  keywords: ['SIP', 'voice broadcasting', 'outbound calling', 'campaign management', 'Voxora'],
   icons: { icon: '/favicon.svg', shortcut: '/favicon.svg' },
 }
 

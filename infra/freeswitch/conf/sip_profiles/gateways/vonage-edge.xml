@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Vonage Edge TLS SIP Gateway — Static Test Config
+  =================================================
+  This file is for DIRECT FreeSWITCH testing without the backend.
+  In production, the backend auto-generates gateway XMLs via GatewayManagerService.
+
+  To use this file:
+    1. Copy to /var/callspsy/gateways/vonage-test.xml on the FreeSWITCH host
+    2. Run: fs_cli -x "sofia profile callspsy_outbound rescan"
+    3. Check: fs_cli -x "sofia status gateway vonage-test"
+    4. Test call: fs_cli -x "originate sofia/gateway/vonage-test/+15551234567 &echo"
+
+  Credentials:
+    Host:      edge3-tlssbc2va.prod.vonedge.com
+    Port:      5061 (TLS)
+    Username:  VHNVhdzLwFuSAhkJoCsA
+    Transport: TLS
+-->
+<include>
+  <gateway name="vonage-edge-tls">
+
+    <!-- Vonage Edge SBC — TLS on port 5061 -->
+    <param name="realm"              value="edge3-tlssbc2va.prod.vonedge.com"/>
+    <param name="proxy"              value="edge3-tlssbc2va.prod.vonedge.com:5061;transport=tls"/>
+    <param name="register-proxy"     value="edge3-tlssbc2va.prod.vonedge.com:5061;transport=tls"/>
+
+    <!-- Credentials -->
+    <param name="username"           value="VHNVhdzLwFuSAhkJoCsA"/>
+    <param name="password"           value="Brokenlove121@"/>
+    <param name="from-user"          value="VHNVhdzLwFuSAhkJoCsA"/>
+    <param name="from-domain"        value="edge3-tlssbc2va.prod.vonedge.com"/>
+
+    <!-- Transport: TLS -->
+    <param name="transport"          value="tls"/>
+    <param name="register-transport" value="tls"/>
+
+    <!-- TLS: accept Vonage's commercial certificate -->
+    <param name="tls-verify-policy"  value="none"/>
+    <param name="tls-version"        value="tlsv1.2,tlsv1.3"/>
+
+    <!-- Caller ID -->
+    <param name="caller-id-in-from"  value="false"/>
+    <param name="extension"          value="VHNVhdzLwFuSAhkJoCsA"/>
+    <param name="extension-in-contact" value="true"/>
+
+    <!-- Registration -->
+    <param name="register"           value="true"/>
+    <param name="retry-seconds"      value="30"/>
+    <param name="expire-seconds"     value="600"/>
+    <param name="ping"               value="25"/>
+    <param name="ping-max"           value="3"/>
+    <param name="ping-min"           value="1"/>
+
+    <!-- Outbound -->
+    <param name="outbound-proxy"     value="edge3-tlssbc2va.prod.vonedge.com:5061;transport=tls"/>
+    <param name="context"            value="callspsy_outbound"/>
+    <param name="suppress-cng"       value="true"/>
+
+  </gateway>
+</include>

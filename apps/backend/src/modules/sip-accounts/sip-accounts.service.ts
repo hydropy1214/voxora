@@ -56,7 +56,7 @@ export class SipAccountsService implements OnModuleInit {
         userId,
         name: dto.name,
         sipServer:         dto.sipServer,
-        sipPort:           dto.sipPort          ?? 5060,
+        sipPort:           dto.sipPort          ?? (dto.transport === 'TLS' ? 5061 : 5060),
         username:          dto.username,
         passwordHash,
         transport:         (dto.transport        ?? 'UDP') as any,

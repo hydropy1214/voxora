@@ -39,7 +39,7 @@ export const useAuthStore = create<AuthState>()(
       logout: () => set({ accessToken: null, refreshToken: null, user: null }),
     }),
     {
-      name: 'callspsy-auth',
+      name: 'voxora-auth',
       partialize: (state) => ({
         accessToken: state.accessToken,
         refreshToken: state.refreshToken,

@@ -142,7 +142,7 @@ export default function BillingPage() {
                   </div>
                 ) : plan.id === 'ENTERPRISE' ? (
                   <a
-                    href="mailto:sales@callspsy.com"
+                    href="mailto:sales@voxora.io"
                     className="flex items-center justify-center gap-2 w-full py-2.5 rounded-lg border border-yellow-500/30 text-yellow-400 hover:bg-yellow-500/10 text-sm transition-all"
                   >
                     Contact Sales <ExternalLink className="h-3.5 w-3.5" />

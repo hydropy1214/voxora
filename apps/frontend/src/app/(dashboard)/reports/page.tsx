@@ -285,7 +285,7 @@ export default function ReportsPage() {
           {/* Export button */}
           {overview?.timeline?.length > 0 && (
             <button
-              onClick={() => downloadCsv(overview.timeline, `callspsy_overview_${from}_${to}.csv`, [
+              onClick={() => downloadCsv(overview.timeline, `voxora_overview_${from}_${to}.csv`, [
                 { key: 'date', label: 'Date' },
                 { key: 'total', label: 'Total' },
                 { key: 'answered', label: 'Answered' },
@@ -312,7 +312,7 @@ export default function ReportsPage() {
             </p>
             {campaignReport.length > 0 && (
               <button
-                onClick={() => downloadCsv(campaignReport, `callspsy_campaigns_${from}_${to}.csv`, [
+                onClick={() => downloadCsv(campaignReport, `voxora_campaigns_${from}_${to}.csv`, [
                   { key: 'name', label: 'Campaign' },
                   { key: 'status', label: 'Status' },
                   { key: 'sipAccount', label: 'SIP Account' },
@@ -409,7 +409,7 @@ export default function ReportsPage() {
             <p className="text-sm text-muted-foreground">{dialerReport.length} calls in selected range</p>
             {dialerReport.length > 0 && (
               <button
-                onClick={() => downloadCsv(dialerReport, `callspsy_dialer_${from}_${to}.csv`, [
+                onClick={() => downloadCsv(dialerReport, `voxora_dialer_${from}_${to}.csv`, [
                   { key: 'destination', label: 'Number Dialed' },
                   { key: 'callerIdNumber', label: 'Caller ID' },
                   { key: 'sipAccount', label: 'SIP Account' },
@@ -487,7 +487,7 @@ export default function ReportsPage() {
             <p className="text-sm text-muted-foreground">{contactReport.length} contact list{contactReport.length !== 1 ? 's' : ''}</p>
             {contactReport.length > 0 && (
               <button
-                onClick={() => downloadCsv(contactReport, `callspsy_contacts_report.csv`, [
+                onClick={() => downloadCsv(contactReport, `voxora_contacts_report.csv`, [
                   { key: 'name', label: 'List Name' },
                   { key: 'description', label: 'Description' },
                   { key: 'totalCount', label: 'Total Contacts' },

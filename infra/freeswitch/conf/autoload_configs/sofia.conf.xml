@@ -100,13 +100,21 @@
         <!-- TLS — enabled for providers like Vonage Edge that require SIP-TLS -->
         <param name="tls"                    value="true"/>
         <param name="tls-sip-port"           value="5081"/>
-        <param name="tls-version"            value="tlsv1,tlsv1.1,tlsv1.2,tlsv1.3"/>
+        <!-- Only accept modern TLS — drop TLS 1.0/1.1 (insecure, rejected by Vonage Edge) -->
+        <param name="tls-version"            value="tlsv1.2,tlsv1.3"/>
         <param name="tls-cert-dir"           value="/etc/freeswitch/tls"/>
         <param name="tls-verify-date"        value="true"/>
+        <!-- Do not verify peer cert — providers use commercial certs FreeSWITCH can't always verify -->
         <param name="tls-verify-policy"      value="none"/>
         <param name="tls-verify-depth"       value="2"/>
         <param name="tls-passphrase"         value=""/>
         <param name="tls-bind-params"        value="transport=tls"/>
+
+        <!-- SRTP — required when using SIP-TLS (Vonage Edge enforces SRTP with TLS) -->
+        <!-- optional: offer SRTP but fall back to RTP if peer doesn't support it -->
+        <!-- always: require SRTP (use for strict providers like Vonage Edge) -->
+        <param name="rtp-secure-media"       value="optional"/>
+        <param name="rtp-security-suites"    value="AEAD_AES_256_GCM_8:AEAD_AES_128_GCM:AES_CM_256_HMAC_SHA1_80:AES_CM_128_HMAC_SHA1_80"/>
       </settings>
 
       <gateways>

@@ -201,56 +201,74 @@ export class GatewayManagerService implements OnModuleInit {
   }
 
   private buildGatewayXml(cfg: GatewayConfig): string {
-    const proxy = cfg.proxy || `${cfg.sipServer}:${cfg.sipPort}`;
-    const outboundProxy = cfg.outboundProxy || proxy;
-    const fromDomain = cfg.fromDomain || cfg.sipServer;
-    const transport = cfg.transport.toLowerCase();
+    const transport   = cfg.transport.toLowerCase();
+    const isTls       = transport === 'tls';
+
+    // TLS standard port is 5061. If account was saved with default 5060, correct it.
+    const effectivePort = isTls && cfg.sipPort === 5060 ? 5061 : (cfg.sipPort || (isTls ? 5061 : 5060));
+
+    // Build proxy URI — TLS requires ;transport=tls suffix so FreeSWITCH selects the TLS socket
+    const sipUri = isTls
+      ? `${cfg.sipServer}:${effectivePort};transport=tls`
+      : `${cfg.sipServer}:${effectivePort}`;
+
+    const proxy         = cfg.proxy      || sipUri;
+    const outboundProxy = cfg.outboundProxy || sipUri;
+    const fromDomain    = cfg.fromDomain || cfg.sipServer;
+
+    // For TLS: strip the port to get the clean realm (SIP REGISTER requires realm = domain)
+    const realm = cfg.sipServer;
 
     return `<?xml version="1.0" encoding="UTF-8"?>
 <!--
-  CallsPsy SIP Gateway: ${cfg.name}
+  Voxora SIP Gateway: ${cfg.name}
   Account ID: ${cfg.id}
+  Transport: ${transport.toUpperCase()}
   Auto-generated — do not edit manually.
 -->
 <include>
   <gateway name="${cfg.id}">
 
     <!-- Server -->
-    <param name="realm"           value="${cfg.sipServer}"/>
-    <param name="proxy"           value="${proxy}"/>
-    <param name="register-proxy"  value="${outboundProxy}"/>
+    <param name="realm"              value="${realm}"/>
+    <param name="proxy"              value="${proxy}"/>
+    <param name="register-proxy"     value="${proxy}"/>
 
     <!-- Credentials -->
-    <param name="username"        value="${cfg.username}"/>
-    <param name="password"        value="${cfg.password}"/>
-    <param name="from-user"       value="${cfg.username}"/>
-    <param name="from-domain"     value="${fromDomain}"/>
+    <param name="username"           value="${cfg.username}"/>
+    <param name="password"           value="${cfg.password}"/>
+    <param name="from-user"          value="${cfg.username}"/>
+    <param name="from-domain"        value="${fromDomain}"/>
 
     <!-- Transport -->
-    <param name="transport"       value="${transport}"/>
-
+    <param name="transport"          value="${transport}"/>
+    <param name="register-transport" value="${transport}"/>
+${isTls ? `
+    <!-- TLS-specific: accept any cert (providers use commercial certs) -->
+    <param name="tls-verify-policy"  value="none"/>
+    <param name="tls-version"        value="tlsv1.2,tlsv1.3"/>
+` : ''}
     <!-- Caller ID -->
-    <param name="caller-id-in-from" value="false"/>
-    <param name="extension"       value="${cfg.callerIdNumber || cfg.username}"/>
+    <param name="caller-id-in-from"  value="false"/>
+    <param name="extension"          value="${cfg.callerIdNumber || cfg.username}"/>
     <param name="extension-in-contact" value="true"/>
 
     <!-- Registration -->
-    <param name="register"        value="true"/>
-    <param name="register-transport" value="${transport}"/>
-    <param name="retry-seconds"   value="30"/>
-    <param name="expire-seconds"  value="600"/>
-    <param name="ping"            value="25"/>
-    <param name="ping-max"        value="3"/>
-    <param name="ping-min"        value="1"/>
+    <param name="register"           value="true"/>
+    <param name="retry-seconds"      value="30"/>
+    <param name="expire-seconds"     value="600"/>
+    <param name="ping"               value="25"/>
+    <param name="ping-max"           value="3"/>
+    <param name="ping-min"           value="1"/>
 
-    <!-- Outbound calls -->
-    <param name="outbound-proxy"  value="${outboundProxy}"/>
-    <param name="context"         value="callspsy_outbound"/>
+    <!-- Outbound routing -->
+    <param name="outbound-proxy"     value="${outboundProxy}"/>
+    <param name="context"            value="callspsy_outbound"/>
 
-    <!-- Suppress CNG (comfort noise) -->
-    <param name="suppress-cng"    value="true"/>
-
-    <!-- Max concurrent calls handled in campaign processor, not here -->
+    <!-- Audio -->
+    <param name="suppress-cng"       value="true"/>
+    <param name="rfc5626"            value="true"/>
+    <param name="rfc5627"            value="true"/>
 
   </gateway>
 </include>
