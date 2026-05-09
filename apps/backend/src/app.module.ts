@@ -17,7 +17,7 @@ import { LiveMonitorModule } from './modules/live-monitor/live-monitor.module';
 import { RecordingsModule } from './modules/recordings/recordings.module';
 import { AnalyticsModule } from './modules/analytics/analytics.module';
 import { BillingModule } from './modules/billing/billing.module';
-import { WebsocketGateway } from './gateways/websocket.gateway';
+import { WebsocketModule } from './gateways/websocket.module';
 import { SipServiceModule } from './services/sip/sip.module';
 import { CryptoModule } from './services/crypto/crypto.module';
 import { SystemModule } from './modules/system/system.module';
@@ -77,10 +77,11 @@ import { HealthController } from './health.controller';
     AnalyticsModule,
     BillingModule,
     CryptoModule,
+    WebsocketModule,
     SipServiceModule,
     SystemModule,
   ],
   controllers: [HealthController],
-  providers: [WebsocketGateway],
+  providers: [],
 })
 export class AppModule {}
