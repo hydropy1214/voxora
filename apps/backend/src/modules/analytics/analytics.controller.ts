@@ -39,4 +39,41 @@ export class AnalyticsController {
   getEvents(@Req() req, @Query('limit') limit = 10) {
     return this.service.getRecentEvents(req.user.id, +limit);
   }
+
+  @Get('range')
+  @ApiOperation({ summary: 'Get analytics for a custom date range' })
+  getRange(
+    @Req() req,
+    @Query('from') from: string,
+    @Query('to') to: string,
+    @Query('groupBy') groupBy: 'day' | 'week' | 'month' = 'day',
+  ) {
+    return this.service.getRangeStats(req.user.id, from, to, groupBy);
+  }
+
+  @Get('reports/campaigns')
+  @ApiOperation({ summary: 'Campaign report for date range (CSV-ready)' })
+  getCampaignReport(
+    @Req() req,
+    @Query('from') from: string,
+    @Query('to') to: string,
+  ) {
+    return this.service.getCampaignReport(req.user.id, from, to);
+  }
+
+  @Get('reports/dialer')
+  @ApiOperation({ summary: 'Dialer call report for date range' })
+  getDialerReport(
+    @Req() req,
+    @Query('from') from: string,
+    @Query('to') to: string,
+  ) {
+    return this.service.getDialerReport(req.user.id, from, to);
+  }
+
+  @Get('reports/contacts')
+  @ApiOperation({ summary: 'Contact list report' })
+  getContactReport(@Req() req) {
+    return this.service.getContactReport(req.user.id);
+  }
 }

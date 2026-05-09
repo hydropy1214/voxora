@@ -5,7 +5,7 @@ import { usePathname } from 'next/navigation'
 import {
   LayoutDashboard, Megaphone, Users, FileAudio, Wifi,
   Activity, Mic, BarChart3, CreditCard, Settings, PhoneCall,
-  ChevronRight, MonitorCheck, PhoneOutgoing,
+  ChevronRight, MonitorCheck, PhoneOutgoing, FileBarChart2,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
@@ -37,6 +37,7 @@ const NAV_ITEMS = [
     label: 'Insights',
     items: [
       { href: '/analytics', label: 'Analytics', icon: BarChart3 },
+      { href: '/reports',   label: 'Reports',   icon: FileBarChart2 },
     ],
   },
   {

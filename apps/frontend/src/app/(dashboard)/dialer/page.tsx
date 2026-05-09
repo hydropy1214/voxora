@@ -296,27 +296,27 @@ export default function DialerPage() {
             )}
 
             <div className="p-5 space-y-4">
-              {/* Number display */}
+              {/* Number display — directly editable */}
               <div className="relative">
-                <div className={cn(
-                  'flex items-center justify-between gap-2 px-4 py-3.5 rounded-xl bg-background border min-h-[52px]',
-                  activeCall ? 'border-green-500/30' : 'border-border',
-                )}>
-                  <span className={cn(
-                    'text-xl font-mono tracking-widest flex-1 truncate',
-                    !number && 'text-muted-foreground',
-                  )}>
-                    {number ? formatPhoneDisplay(number) : 'Enter number'}
-                  </span>
-                  {number && !activeCall && (
-                    <button
-                      onClick={backspace}
-                      className="p-1.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-accent transition-all"
-                    >
-                      <Delete className="h-4 w-4" />
-                    </button>
+                <input
+                  type="tel"
+                  value={number}
+                  onChange={e => setNumber(e.target.value.replace(/[^0-9+*#\s\-().]/g, '').slice(0, 20))}
+                  placeholder="Enter number or type here…"
+                  disabled={!!activeCall}
+                  className={cn(
+                    'w-full px-4 py-4 pr-12 rounded-xl bg-background border text-xl font-mono tracking-widest focus:outline-none focus:ring-2 focus:ring-brand-500 placeholder:text-muted-foreground placeholder:text-base placeholder:font-sans placeholder:tracking-normal transition-all disabled:opacity-60',
+                    activeCall ? 'border-green-500/30' : 'border-border',
                   )}
-                </div>
+                />
+                {number && !activeCall && (
+                  <button
+                    onClick={backspace}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 p-1.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-accent transition-all"
+                  >
+                    <Delete className="h-4 w-4" />
+                  </button>
+                )}
               </div>
 
               {/* Keypad */}

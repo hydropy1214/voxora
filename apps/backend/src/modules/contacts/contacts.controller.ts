@@ -1,6 +1,6 @@
 import {
   Controller, Get, Post, Delete, Body, Param, UseGuards, Req,
-  UseInterceptors, UploadedFile, Query, ParseIntPipe,
+  UseInterceptors, UploadedFile, Query, DefaultValuePipe, ParseIntPipe,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { ApiTags, ApiBearerAuth, ApiOperation, ApiConsumes } from '@nestjs/swagger';
@@ -33,6 +33,33 @@ export class ContactsController {
     return this.service.deleteList(req.user.id, listId);
   }
 
+  @Post('lists/:listId/add')
+  @ApiOperation({ summary: 'Add a single contact manually' })
+  addContact(
+    @Req() req,
+    @Param('listId') listId: string,
+    @Body() body: {
+      phone: string;
+      firstName?: string;
+      lastName?: string;
+      email?: string;
+      notes?: string;
+      address?: string;
+    },
+  ) {
+    return this.service.addSingleContact(req.user.id, listId, body);
+  }
+
+  @Delete('lists/:listId/contacts/:contactId')
+  @ApiOperation({ summary: 'Remove a single contact from a list' })
+  removeContact(
+    @Req() req,
+    @Param('listId') listId: string,
+    @Param('contactId') contactId: string,
+  ) {
+    return this.service.removeContact(req.user.id, listId, contactId);
+  }
+
   @Post('lists/:listId/import')
   @ApiOperation({ summary: 'Import contacts from CSV' })
   @ApiConsumes('multipart/form-data')
@@ -50,11 +77,11 @@ export class ContactsController {
   getContacts(
     @Req() req,
     @Param('listId') listId: string,
-    @Query('page') page = 1,
-    @Query('limit') limit = 50,
+    @Query('page', new DefaultValuePipe(1), ParseIntPipe) page: number,
+    @Query('limit', new DefaultValuePipe(50), ParseIntPipe) limit: number,
     @Query('search') search?: string,
   ) {
-    return this.service.getContacts(req.user.id, listId, +page, +limit, search);
+    return this.service.getContacts(req.user.id, listId, page, limit, search);
   }
 
   @Post('opt-out')
