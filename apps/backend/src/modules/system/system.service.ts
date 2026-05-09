@@ -407,6 +407,59 @@ export class SystemService {
     return '127.0.0.1';
   }
 
+  /**
+   * User-facing status — no infrastructure details exposed.
+   * Shows only what matters to end users.
+   */
+  async getPublicStatus() {
+    const [dbOk, eslOk, redisOk] = await Promise.all([
+      this.checkDatabase().then(d => d.connected).catch(() => false),
+      Promise.resolve(this.eslService.isConnected()),
+      this.tcpProbe(
+        this.config.get('REDIS_HOST', 'localhost'),
+        this.config.get<number>('REDIS_PORT', 6379),
+        2000,
+      ).catch(() => false),
+    ]);
+
+    const services = [
+      {
+        id: 'platform',
+        name: 'Platform',
+        description: 'Dashboard, API and account management',
+        status: dbOk ? 'operational' : 'degraded',
+      },
+      {
+        id: 'voice',
+        name: 'Voice Calling',
+        description: 'Outbound voice campaigns and dialer',
+        status: eslOk ? 'operational' : 'degraded',
+      },
+      {
+        id: 'realtime',
+        name: 'Real-time Updates',
+        description: 'Live call monitoring and event streaming',
+        status: redisOk ? 'operational' : 'degraded',
+      },
+      {
+        id: 'storage',
+        name: 'Media Storage',
+        description: 'Audio file uploads and recordings',
+        status: dbOk ? 'operational' : 'degraded',
+      },
+    ];
+
+    const anyDegraded = services.some(s => s.status !== 'operational');
+    const allDown = services.every(s => s.status !== 'operational');
+
+    return {
+      status: allDown ? 'major_outage' : anyDegraded ? 'partial_outage' : 'operational',
+      statusLabel: allDown ? 'Major Outage' : anyDegraded ? 'Partial Outage' : 'All Systems Operational',
+      services,
+      updatedAt: new Date().toISOString(),
+    };
+  }
+
   async getDockerServices(): Promise<Array<{ name: string; state: string; health: string }>> {
     // In production, this would call Docker socket
     // For now return the expected services

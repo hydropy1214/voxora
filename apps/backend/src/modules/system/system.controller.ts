@@ -11,9 +11,15 @@ export class SystemController {
   @Get('status')
   @ApiBearerAuth()
   @UseGuards(JwtAuthGuard)
-  @ApiOperation({ summary: 'Full system status — all services, ports, env vars' })
+  @ApiOperation({ summary: 'Full internal system status (admin)' })
   getStatus() {
     return this.service.getFullStatus();
+  }
+
+  @Get('public-status')
+  @ApiOperation({ summary: 'Public-facing service health (user-visible)' })
+  async getPublicStatus() {
+    return this.service.getPublicStatus();
   }
 
   @Get('ping')
