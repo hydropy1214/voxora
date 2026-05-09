@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # ============================================================
-#  Voxora — One-Click Production Deploy
+#  CallsPsy — One-Click Production Deploy
 #  
 #  WHAT THIS SCRIPT DOES (step by step):
 #  1.  Detects your public IP (AWS/bare-metal/any cloud)
@@ -15,7 +15,7 @@
 #  10. Waits for health checks before proceeding
 #  11. Starts telephony stack: rtpengine → coturn → kamailio → freeswitch
 #  12. Runs database migrations (prisma migrate deploy)
-#  13. Seeds demo data (demo@voxora.io / demo123456)
+#  13. Seeds demo data (demo@callspsy.com / demo123456)
 #  14. Starts application: backend → frontend → nginx
 #  15. Prints access URLs and management commands
 #
@@ -26,7 +26,7 @@
 #
 #  USAGE:
 #  sudo ./setup.sh                     # Auto-detect IP
-#  sudo ./setup.sh --domain voxora.io  # With custom domain
+#  sudo ./setup.sh --domain callspsy.com  # With custom domain
 #  sudo ./setup.sh --skip-firewall     # AWS (use Security Groups instead)
 #  ./setup.sh --dev                    # Local development
 # ============================================================
@@ -86,12 +86,12 @@ PUBLIC_IP_OVERRIDE=""
 
 usage() {
   cat << 'EOF'
-Voxora Setup Script
+CallsPsy Setup Script
 
 Usage: sudo ./setup.sh [OPTIONS]
 
 Options:
-  --domain DOMAIN       Set your domain (e.g. app.voxora.io)
+  --domain DOMAIN       Set your domain (e.g. app.callspsy.com)
   --ip IP               Override auto-detected public IP
   --skip-deps           Skip Docker installation (already installed)
   --skip-firewall       Skip firewall setup (use for AWS Security Groups)
@@ -104,7 +104,7 @@ Examples:
   sudo ./setup.sh --skip-firewall
 
   # With custom domain:
-  sudo ./setup.sh --domain app.voxora.io
+  sudo ./setup.sh --domain app.callspsy.com
 
   # Force rebuild everything:
   sudo ./setup.sh --force
@@ -313,8 +313,8 @@ configure_firewall() {
     ufw allow ssh comment "SSH"
     ufw allow 80/tcp  comment "HTTP"
     ufw allow 443/tcp comment "HTTPS"
-    ufw allow 3000/tcp comment "Voxora Frontend"
-    ufw allow 3001/tcp comment "Voxora API"
+    ufw allow 3000/tcp comment "CallsPsy Frontend"
+    ufw allow 3001/tcp comment "CallsPsy API"
     # SIP
     ufw allow 5060/udp comment "SIP UDP (Kamailio)"
     ufw allow 5060/tcp comment "SIP TCP (Kamailio)"
@@ -350,8 +350,8 @@ print_aws_sg_guide() {
   echo -e "  ${DIM}├──────────┼────────────────┼─────────────────────┼────────────────────────┤${NC}"
   echo -e "  ${DIM}│ TCP      │ 22             │ Your IP/32          │ SSH admin access       │${NC}"
   echo -e "  ${DIM}│ TCP      │ 80, 443        │ 0.0.0.0/0           │ Web UI (HTTP/HTTPS)    │${NC}"
-  echo -e "  ${DIM}│ TCP      │ 3000           │ 0.0.0.0/0           │ Voxora Frontend        │${NC}"
-  echo -e "  ${DIM}│ TCP      │ 3001           │ 0.0.0.0/0           │ Voxora API             │${NC}"
+  echo -e "  ${DIM}│ TCP      │ 3000           │ 0.0.0.0/0           │ CallsPsy Frontend      │${NC}"
+  echo -e "  ${DIM}│ TCP      │ 3001           │ 0.0.0.0/0           │ CallsPsy API           │${NC}"
   echo -e "  ${DIM}│ UDP+TCP  │ 5060           │ 0.0.0.0/0           │ SIP (Kamailio proxy)   │${NC}"
   echo -e "  ${DIM}│ UDP+TCP  │ 5080           │ 0.0.0.0/0           │ SIP (FreeSWITCH)       │${NC}"
   echo -e "  ${DIM}│ UDP+TCP  │ 3478           │ 0.0.0.0/0           │ STUN/TURN (Coturn)     │${NC}"
@@ -388,12 +388,12 @@ configure_environment() {
   ESL_PASS="$(_get_env FREESWITCH_ESL_PASSWORD)";     [[ -z "$ESL_PASS" ]]    && ESL_PASS="$(generate_password)"
   COTURN_SEC="$(_get_env COTURN_SECRET)";             [[ -z "$COTURN_SEC" ]]  && COTURN_SEC="$(generate_secret)"
 
-  DATABASE_URL="postgresql://voxora:${DB_PASS}@postgres:5432/voxora_db?schema=public"
+  DATABASE_URL="postgresql://callspsy:${DB_PASS}@postgres:5432/callspsy_db?schema=public"
 
   info "Writing .env..."
   cat > "$ENV_FILE" << EOF
 # ============================================================
-# Voxora Configuration — Auto-generated $(date -u '+%Y-%m-%d %H:%M UTC')
+# CallsPsy Configuration — Auto-generated $(date -u '+%Y-%m-%d %H:%M UTC')
 # Public IP: ${PUBLIC_IP}  |  Host: $(hostname -s)
 # ============================================================
 
@@ -415,8 +415,8 @@ JWT_REFRESH_EXPIRES_IN=7d
 # ── Database (PostgreSQL) ─────────────────────────────────────
 DB_HOST=postgres
 DB_PORT=5432
-DB_NAME=voxora_db
-DB_USER=voxora
+DB_NAME=callspsy_db
+DB_USER=callspsy
 DB_PASSWORD=${DB_PASS}
 DATABASE_URL=${DATABASE_URL}
 
@@ -488,17 +488,17 @@ generate_telephony_configs() {
   info "Writing Coturn config..."
   mkdir -p "${SCRIPT_DIR}/infra/coturn"
   cat > "${SCRIPT_DIR}/infra/coturn/turnserver.conf" << EOF
-# Coturn STUN/TURN Server — Voxora Production
+# Coturn STUN/TURN Server — CallsPsy Production
 # Generated: $(date -u '+%Y-%m-%d %H:%M UTC')
 listening-port=3478
 tls-listening-port=5349
 listening-ip=0.0.0.0
 relay-ip=${PRIVATE_IP}
 external-ip=${PUBLIC_IP}/${PRIVATE_IP}
-realm=voxora.io
+realm=callspsy.com
 use-auth-secret
 static-auth-secret=${COTURN_SEC}
-server-name=voxora-turn
+server-name=callspsy-turn
 log-file=/var/log/coturn/turnserver.log
 syslog
 no-tlsv1
@@ -550,7 +550,7 @@ pull_images() {
 build_images() {
   step "Build Custom Docker Images"
   info "Building: kamailio (SIP proxy) + freeswitch (media server) + backend + frontend"
-  detail "This step adds Voxora configs/scripts on top of official images"
+  detail "This step adds CallsPsy configs/scripts on top of official images"
   detail "Duration: ~5-10 minutes on first run (cached on subsequent runs)"
 
   cd "$SCRIPT_DIR"
@@ -581,7 +581,7 @@ start_infrastructure() {
   info "Waiting for PostgreSQL to accept connections..."
   local retries=0
   until docker compose exec -T postgres pg_isready \
-        -U "${DB_USER:-voxora}" -d "${DB_NAME:-voxora_db}" &>/dev/null; do
+        -U "${DB_USER:-callspsy}" -d "${DB_NAME:-callspsy_db}" &>/dev/null; do
     retries=$((retries + 1))
     if [[ $retries -ge 40 ]]; then
       error "PostgreSQL failed to start after 80s"
@@ -625,7 +625,7 @@ run_migrations() {
   log "Migrations applied"
 
   info "Seeding demo data..."
-  detail "Creates demo account: demo@voxora.io / demo123456"
+  detail "Creates demo account: demo@callspsy.com / demo123456"
   docker compose run --rm backend sh -c "npm run prisma:seed" 2>&1 | \
     grep -E '(Created|Seeded|complete|error|Error)' || true
   log "Demo data seeded"
@@ -756,7 +756,7 @@ verify_deployment() {
 print_summary() {
   echo ""
   echo -e "${BOLD}${GREEN}╔══════════════════════════════════════════════════════╗${NC}"
-  echo -e "${BOLD}${GREEN}║         🚀 Voxora Deployed Successfully!             ║${NC}"
+  echo -e "${BOLD}${GREEN}║        🚀 CallsPsy Deployed Successfully!            ║${NC}"
   echo -e "${BOLD}${GREEN}╚══════════════════════════════════════════════════════╝${NC}"
   echo ""
 
@@ -768,7 +768,7 @@ print_summary() {
   echo ""
 
   echo -e "${BOLD}  Demo Login:${NC}"
-  echo -e "  ${CYAN}Email:${NC}    demo@voxora.io"
+  echo -e "  ${CYAN}Email:${NC}    demo@callspsy.com"
   echo -e "  ${CYAN}Password:${NC} demo123456"
   echo ""
 
@@ -798,7 +798,7 @@ print_summary() {
   echo -e "  docker compose exec freeswitch fs_cli"
   echo ""
   echo -e "  ${DIM}# Database console${NC}"
-  echo -e "  docker compose exec postgres psql -U voxora voxora_db"
+  echo -e "  docker compose exec postgres psql -U callspsy callspsy_db"
   echo ""
   echo -e "  ${DIM}# Or use the Makefile:${NC}"
   echo -e "  make help"

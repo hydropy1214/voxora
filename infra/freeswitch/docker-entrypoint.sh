@@ -6,7 +6,7 @@
 #  1. Writes /etc/freeswitch/vars.xml with actual PUBLIC_IP
 #     → FreeSWITCH uses this in ext-rtp-ip / ext-sip-ip
 #     → Without correct public IP, media goes to wrong address on AWS
-#  2. Creates /var/voxora/gateways/ directory (shared volume)
+#  2. Creates /var/callspsy/gateways/ directory (shared volume)
 #     → Backend writes gateway XML files here
 #     → FreeSWITCH sofia profile includes *.xml from this dir
 #  3. Starts FreeSWITCH
@@ -16,10 +16,10 @@ set -e
 PUBLIC_IP="${PUBLIC_IP:-127.0.0.1}"
 PRIVATE_IP="${PRIVATE_IP:-0.0.0.0}"
 ESL_PASSWORD="${ESL_PASSWORD:-ClueCon}"
-GATEWAY_DIR="/var/voxora/gateways"
+GATEWAY_DIR="/var/callspsy/gateways"
 
 echo "[FS] ============================================"
-echo "[FS] Voxora FreeSWITCH"
+echo "[FS] CallsPsy FreeSWITCH"
 echo "[FS] Public IP:   ${PUBLIC_IP}"
 echo "[FS] Private IP:  ${PRIVATE_IP}"
 echo "[FS] Gateway dir: ${GATEWAY_DIR}"
@@ -30,7 +30,7 @@ cat > /etc/freeswitch/vars.xml << EOF
 <?xml version="1.0"?>
 <include>
   <!--
-    Voxora FreeSWITCH Variables
+    CallsPsy FreeSWITCH Variables
     Auto-generated at container start.
     Public IP: ${PUBLIC_IP}
   -->
@@ -50,7 +50,7 @@ cat > /etc/freeswitch/vars.xml << EOF
 
   <!-- Audio defaults -->
   <X-PRE-PROCESS cmd="set" data="hold_music=silence_stream://0"/>
-  <X-PRE-PROCESS cmd="set" data="use_profile=voxora_outbound"/>
+  <X-PRE-PROCESS cmd="set" data="use_profile=callspsy_outbound"/>
 
   <!-- Sound path (needed by some modules) -->
   <X-PRE-PROCESS cmd="set" data="sound_prefix=/usr/share/freeswitch/sounds/en/us/callie"/>
@@ -58,7 +58,23 @@ cat > /etc/freeswitch/vars.xml << EOF
 EOF
 echo "[FS] vars.xml written"
 
-# ── 2. Ensure gateway directory exists and is writable ─────────────────────
+# ── 2. Generate self-signed TLS certificate for SIP-TLS ───────────────────
+TLS_DIR="/etc/freeswitch/tls"
+mkdir -p "$TLS_DIR"
+if [ ! -f "$TLS_DIR/agent.pem" ]; then
+  openssl req -x509 -nodes -days 3650 -newkey rsa:2048 \
+    -keyout "$TLS_DIR/agent.key" \
+    -out    "$TLS_DIR/agent.crt" \
+    -subj   "/C=US/ST=CA/O=CallsPsy/CN=${PUBLIC_IP}" 2>/dev/null
+  cat "$TLS_DIR/agent.crt" "$TLS_DIR/agent.key" > "$TLS_DIR/agent.pem"
+  cp "$TLS_DIR/agent.crt" "$TLS_DIR/cafile.pem"
+  cp "$TLS_DIR/agent.pem" "$TLS_DIR/wss.pem"
+  chown -R freeswitch:freeswitch "$TLS_DIR" 2>/dev/null || true
+  chmod 640 "$TLS_DIR"/*.pem "$TLS_DIR"/*.key "$TLS_DIR"/*.crt 2>/dev/null || true
+  echo "[FS] TLS certificates generated"
+fi
+
+# ── 3. Ensure gateway directory exists and is writable ─────────────────────
 mkdir -p "${GATEWAY_DIR}"
 chown -R freeswitch:freeswitch "${GATEWAY_DIR}" 2>/dev/null || true
 chmod 775 "${GATEWAY_DIR}"

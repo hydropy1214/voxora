@@ -43,7 +43,7 @@ export default function SignupPage() {
     try {
       const res = await api.post('/auth/register', data)
       setAuth(res.data.accessToken, res.data.refreshToken, res.data.user)
-      toast.success('Account created! Welcome to Voxora.')
+      toast.success('Account created! Welcome to CallsPsy.')
       router.push('/dashboard')
     } catch (err: any) {
       toast.error(err.response?.data?.message || 'Registration failed')

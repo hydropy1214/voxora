@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # ============================================================
-#  Voxora Health Check Script
+#  CallsPsy Health Check Script
 #  Verifies all services are running correctly
 # ============================================================
 set -euo pipefail
@@ -28,7 +28,7 @@ check() {
 }
 
 echo ""
-echo "=== Voxora Health Check ==="
+echo "=== CallsPsy Health Check ==="
 echo ""
 
 echo "── Docker Services ──"
@@ -51,8 +51,8 @@ check "Nginx accessible"     "curl -sf --max-time 5 http://localhost/health"  "f
 
 echo ""
 echo "── Database ──"
-check "PostgreSQL connection"  "docker compose exec -T postgres pg_isready -U voxora"
-check "Redis ping"             "docker compose exec -T redis redis-cli -a \"\${REDIS_PASSWORD:-voxora_redis_pass}\" ping | grep -q PONG"
+check "PostgreSQL connection"  "docker compose exec -T postgres pg_isready -U callspsy"
+check "Redis ping"             "docker compose exec -T redis redis-cli -a \"\${REDIS_PASSWORD:-callspsy_redis_pass}\" ping | grep -q PONG"
 
 echo ""
 echo "── Network Ports ──"

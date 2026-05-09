@@ -1,4 +1,4 @@
-<configuration name="event_socket.conf" description="FreeSWITCH Event Socket — Voxora API">
+<configuration name="event_socket.conf" description="FreeSWITCH Event Socket — CallsPsy API">
   <settings>
     <!-- Bind to all interfaces within Docker network -->
     <param name="nat-map" value="false"/>

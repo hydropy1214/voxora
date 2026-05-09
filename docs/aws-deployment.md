@@ -1,4 +1,4 @@
-# Deploying Voxora on AWS EC2
+# Deploying CallsPsy on AWS EC2
 
 ## Recommended Instance
 
@@ -50,8 +50,8 @@ ssh -i your-key.pem ubuntu@YOUR_EC2_PUBLIC_IP
 ### Step 2: Clone repository
 
 ```bash
-git clone https://github.com/your-org/voxora.git
-cd voxora
+git clone https://github.com/your-org/callspsy.git
+cd callspsy
 ```
 
 ### Step 3: Run setup
@@ -61,13 +61,13 @@ cd voxora
 sudo ./setup.sh
 
 # With custom domain:
-sudo ./setup.sh --domain app.voxora.io
+sudo ./setup.sh --domain app.callspsy.io
 
 # Skip firewall (using Security Groups instead)
 sudo ./setup.sh --skip-firewall
 ```
 
-### Step 4: Access Voxora
+### Step 4: Access CallsPsy
 
 ```
 Dashboard:  http://YOUR_EC2_IP:3000
@@ -75,7 +75,7 @@ API:        http://YOUR_EC2_IP:3001/api
 API Docs:   http://YOUR_EC2_IP:3001/api/docs
 ```
 
-Demo login: `demo@voxora.io` / `demo123456`
+Demo login: `demo@callspsy.io` / `demo123456`
 
 ---
 
@@ -113,7 +113,7 @@ The `setup.sh` script handles this automatically:
 make ssl-certbot
 
 # Then enable HTTPS in nginx
-# Edit infra/nginx/conf.d/voxora.conf — uncomment HTTPS server block
+# Edit infra/nginx/conf.d/callspsy.conf — uncomment HTTPS server block
 docker compose restart nginx
 ```
 

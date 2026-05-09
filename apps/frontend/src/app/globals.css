@@ -13,7 +13,7 @@
     --popover: 224 71% 5%;
     --popover-foreground: 215 20.2% 95.1%;
 
-    --primary: 239 84% 67%;
+    --primary: 248 100% 72%;
     --primary-foreground: 224 71% 4%;
 
     --secondary: 222.2 47.4% 11.2%;
@@ -30,7 +30,7 @@
 
     --border: 216 34% 17%;
     --input: 216 34% 17%;
-    --ring: 239 84% 67%;
+    --ring: 248 100% 72%;
 
     --radius: 0.75rem;
   }
@@ -73,7 +73,7 @@
   .stat-card::before {
     content: '';
     @apply absolute inset-0 rounded-xl opacity-0 transition-opacity;
-    background: linear-gradient(135deg, rgba(99, 102, 241, 0.05) 0%, transparent 100%);
+    background: linear-gradient(135deg, rgba(124, 111, 255, 0.05) 0%, transparent 100%);
   }
 
   .stat-card:hover::before {
@@ -99,7 +99,7 @@
   }
 
   .gradient-brand {
-    background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+    background: linear-gradient(135deg, #7c6fff 0%, #a855f7 100%);
   }
 
   .text-gradient {

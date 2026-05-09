@@ -1,5 +1,5 @@
 # ============================================================
-#  Voxora Kamailio SIP Proxy Image
+#  CallsPsy Kamailio SIP Proxy Image
 #  Base: kamailio/kamailio (official Docker Hub image)
 #  No external repo download needed — works offline after first pull
 # ============================================================

@@ -43,7 +43,7 @@ export class CreateSipAccountDto {
   @IsString()
   fromDomain?: string;
 
-  @ApiPropertyOptional({ example: 'Voxora' })
+  @ApiPropertyOptional({ example: 'CallsPsy' })
   @IsOptional()
   @IsString()
   callerIdName?: string;

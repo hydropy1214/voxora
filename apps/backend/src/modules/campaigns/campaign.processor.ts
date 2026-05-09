@@ -26,7 +26,7 @@ interface CampaignJob {
  *
  * Audio path note:
  *   Backend stores files at /app/uploads/audio/<uuid>.mp3
- *   FreeSWITCH reads from the SAME path (shared Docker volume voxora_uploads)
+ *   FreeSWITCH reads from the SAME path (shared Docker volume callspsy_uploads)
  *   So the storagePath from the DB is directly usable in the ESL originate command.
  */
 @Processor('campaign')
@@ -275,7 +275,7 @@ export class CampaignProcessor {
         campaignId:      campaign.id,
         callLogId:       callLog.id,
         // Audio files — stored at /app/uploads/audio/<uuid>.mp3
-        // FreeSWITCH reads from the same path via shared voxora_uploads volume
+        // FreeSWITCH reads from the same path via shared callspsy_uploads volume
         audioFile:       campaign.audioFile?.storagePath,
         voicemailAudio:  campaign.voicemailAudio?.storagePath,
         amdEnabled:      campaign.amdEnabled,

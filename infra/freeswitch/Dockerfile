@@ -1,5 +1,5 @@
 # ============================================================
-#  Voxora FreeSWITCH Image
+#  CallsPsy FreeSWITCH Image
 #  Base: signalwire/freeswitch (official, pre-built, no repo issues)
 #  Falls back to building from Debian if official image unavailable
 # ============================================================
@@ -39,21 +39,21 @@ RUN mkdir -p \
     /var/lib/freeswitch/storage \
     /var/lib/freeswitch/db \
     /var/log/freeswitch \
-    /opt/voxora \
+    /opt/callspsy \
     /etc/freeswitch
 
-# Copy Voxora configuration
+# Copy CallsPsy configuration
 COPY conf/ /etc/freeswitch/
 
 # Copy Lua scripts
-COPY scripts/ /opt/voxora/
+COPY scripts/ /opt/callspsy/
 
 # Set permissions
 RUN chown -R freeswitch:freeswitch \
     /etc/freeswitch \
     /var/lib/freeswitch \
     /var/log/freeswitch \
-    /opt/voxora \
+    /opt/callspsy \
     2>/dev/null || true
 
 # Entrypoint

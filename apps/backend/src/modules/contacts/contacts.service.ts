@@ -137,6 +137,69 @@ export class ContactsService {
     return { data, total, page, limit, pages: Math.ceil(total / limit) };
   }
 
+  async addSingleContact(
+    userId: string,
+    listId: string,
+    data: { phone: string; firstName?: string; lastName?: string; email?: string; notes?: string; address?: string },
+  ) {
+    await this.getList(userId, listId);
+    const raw = data.phone.trim();
+    let formattedPhone = raw;
+    let isValid = false;
+    let countryCode: string | undefined;
+    try {
+      if (isValidPhoneNumber(raw, 'US')) {
+        const parsed = parsePhoneNumber(raw, 'US');
+        formattedPhone = parsed.format('E.164');
+        countryCode = parsed.country;
+        isValid = true;
+      } else if (raw.startsWith('+') && isValidPhoneNumber(raw)) {
+        const parsed = parsePhoneNumber(raw);
+        formattedPhone = parsed.format('E.164');
+        countryCode = parsed.country;
+        isValid = true;
+      }
+    } catch {}
+
+    const contact = await this.prisma.contact.create({
+      data: {
+        listId,
+        phone: raw,
+        formattedPhone,
+        firstName: data.firstName || null,
+        lastName: data.lastName || null,
+        email: data.email || null,
+        isValid,
+        countryCode,
+        customFields: data.notes || data.address
+          ? { notes: data.notes, address: data.address }
+          : undefined,
+      },
+    });
+
+    await this.prisma.contactList.update({
+      where: { id: listId },
+      data: { totalCount: { increment: 1 }, validCount: isValid ? { increment: 1 } : undefined },
+    });
+
+    return contact;
+  }
+
+  async removeContact(userId: string, listId: string, contactId: string) {
+    await this.getList(userId, listId);
+    const contact = await this.prisma.contact.findFirst({ where: { id: contactId, listId } });
+    if (!contact) throw new NotFoundException('Contact not found');
+    await this.prisma.contact.delete({ where: { id: contactId } });
+    await this.prisma.contactList.update({
+      where: { id: listId },
+      data: {
+        totalCount: { decrement: 1 },
+        validCount: contact.isValid ? { decrement: 1 } : undefined,
+      },
+    });
+    return { success: true };
+  }
+
   async optOut(phone: string) {
     await this.prisma.contact.updateMany({
       where: { formattedPhone: phone },

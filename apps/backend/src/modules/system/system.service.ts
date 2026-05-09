@@ -275,8 +275,8 @@ export class SystemService {
 
   private async checkPorts(): Promise<PortStatus[]> {
     const portsToCheck: Array<{ port: number; protocol: 'TCP' | 'UDP'; service: string; description: string }> = [
-      { port: 3001, protocol: 'TCP', service: 'Voxora API', description: 'NestJS REST API + WebSocket' },
-      { port: 3000, protocol: 'TCP', service: 'Voxora UI', description: 'Next.js Frontend' },
+      { port: 3001, protocol: 'TCP', service: 'CallsPsy API', description: 'NestJS REST API + WebSocket' },
+      { port: 3000, protocol: 'TCP', service: 'CallsPsy UI', description: 'Next.js Frontend' },
       { port: 80,   protocol: 'TCP', service: 'Nginx HTTP', description: 'Reverse proxy / load balancer' },
       { port: 443,  protocol: 'TCP', service: 'Nginx HTTPS', description: 'SSL termination' },
       { port: 5060, protocol: 'UDP', service: 'Kamailio SIP', description: 'Primary SIP signaling port' },
@@ -305,7 +305,7 @@ export class SystemService {
       { key: 'JWT_SECRET',               label: 'JWT Secret',              required: true,  description: 'Signs access tokens. Must be 32+ characters.',        mask: true },
       { key: 'JWT_REFRESH_SECRET',        label: 'JWT Refresh Secret',      required: true,  description: 'Signs refresh tokens. Must be 32+ characters.',       mask: true },
       { key: 'DATABASE_URL',              label: 'Database URL',            required: true,  description: 'PostgreSQL connection string.',                       mask: true },
-      { key: 'DB_PASSWORD',               label: 'DB Password',             required: true,  description: 'PostgreSQL password for voxora user.',               mask: true },
+      { key: 'DB_PASSWORD',               label: 'DB Password',             required: true,  description: 'PostgreSQL password for callspsy user.',             mask: true },
       { key: 'REDIS_PASSWORD',            label: 'Redis Password',          required: true,  description: 'Redis authentication password.',                     mask: true },
       { key: 'FREESWITCH_ESL_PASSWORD',   label: 'FreeSWITCH ESL Password', required: false, description: 'Password for FreeSWITCH Event Socket.',              mask: true },
       { key: 'PUBLIC_IP',                 label: 'Public IP',               required: false, description: 'Your server public IP for SIP/RTP NAT traversal.' },
@@ -407,19 +407,72 @@ export class SystemService {
     return '127.0.0.1';
   }
 
+  /**
+   * User-facing status — no infrastructure details exposed.
+   * Shows only what matters to end users.
+   */
+  async getPublicStatus() {
+    const [dbOk, eslOk, redisOk] = await Promise.all([
+      this.checkDatabase().then(d => d.connected).catch(() => false),
+      Promise.resolve(this.eslService.isConnected()),
+      this.tcpProbe(
+        this.config.get('REDIS_HOST', 'localhost'),
+        this.config.get<number>('REDIS_PORT', 6379),
+        2000,
+      ).catch(() => false),
+    ]);
+
+    const services = [
+      {
+        id: 'platform',
+        name: 'Platform',
+        description: 'Dashboard, API and account management',
+        status: dbOk ? 'operational' : 'degraded',
+      },
+      {
+        id: 'voice',
+        name: 'Voice Calling',
+        description: 'Outbound voice campaigns and dialer',
+        status: eslOk ? 'operational' : 'degraded',
+      },
+      {
+        id: 'realtime',
+        name: 'Real-time Updates',
+        description: 'Live call monitoring and event streaming',
+        status: redisOk ? 'operational' : 'degraded',
+      },
+      {
+        id: 'storage',
+        name: 'Media Storage',
+        description: 'Audio file uploads and recordings',
+        status: dbOk ? 'operational' : 'degraded',
+      },
+    ];
+
+    const anyDegraded = services.some(s => s.status !== 'operational');
+    const allDown = services.every(s => s.status !== 'operational');
+
+    return {
+      status: allDown ? 'major_outage' : anyDegraded ? 'partial_outage' : 'operational',
+      statusLabel: allDown ? 'Major Outage' : anyDegraded ? 'Partial Outage' : 'All Systems Operational',
+      services,
+      updatedAt: new Date().toISOString(),
+    };
+  }
+
   async getDockerServices(): Promise<Array<{ name: string; state: string; health: string }>> {
     // In production, this would call Docker socket
     // For now return the expected services
     return [
-      { name: 'voxora_postgres',   state: 'running', health: 'healthy' },
-      { name: 'voxora_redis',      state: 'running', health: 'healthy' },
-      { name: 'voxora_backend',    state: 'running', health: 'healthy' },
-      { name: 'voxora_frontend',   state: 'running', health: 'healthy' },
-      { name: 'voxora_freeswitch', state: 'running', health: 'unknown' },
-      { name: 'voxora_kamailio',   state: 'running', health: 'unknown' },
-      { name: 'voxora_rtpengine',  state: 'running', health: 'unknown' },
-      { name: 'voxora_coturn',     state: 'running', health: 'unknown' },
-      { name: 'voxora_nginx',      state: 'running', health: 'unknown' },
+      { name: 'callspsy_postgres',   state: 'running', health: 'healthy' },
+      { name: 'callspsy_redis',      state: 'running', health: 'healthy' },
+      { name: 'callspsy_backend',    state: 'running', health: 'healthy' },
+      { name: 'callspsy_frontend',   state: 'running', health: 'healthy' },
+      { name: 'callspsy_freeswitch', state: 'running', health: 'unknown' },
+      { name: 'callspsy_kamailio',   state: 'running', health: 'unknown' },
+      { name: 'callspsy_rtpengine',  state: 'running', health: 'unknown' },
+      { name: 'callspsy_coturn',     state: 'running', health: 'unknown' },
+      { name: 'callspsy_nginx',      state: 'running', health: 'unknown' },
     ];
   }
 }

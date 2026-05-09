@@ -24,6 +24,6 @@ export class HealthController {
 
   @Get()
   root() {
-    return { name: 'Voxora API', version: '1.0.0' };
+    return { name: 'CallsPsy API', version: '1.0.0' };
   }
 }
