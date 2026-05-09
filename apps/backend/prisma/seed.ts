@@ -4,7 +4,7 @@ import * as bcrypt from 'bcryptjs'
 const prisma = new PrismaClient()
 
 async function main() {
-  console.log('🌱 Seeding Voxora database...')
+  console.log('🌱 Seeding CallsPsy database...')
 
   // Create demo organization
   const org = await prisma.organization.upsert({
@@ -37,10 +37,10 @@ async function main() {
   // Create demo user
   const passwordHash = await bcrypt.hash('demo123456', 12)
   const user = await prisma.user.upsert({
-    where: { email: 'demo@voxora.io' },
+    where: { email: 'demo@callspsy.com' },
     update: {},
     create: {
-      email: 'demo@voxora.io',
+      email: 'demo@callspsy.com',
       passwordHash,
       firstName: 'Demo',
       lastName: 'User',
@@ -50,7 +50,7 @@ async function main() {
     },
   })
 
-  console.log(`✅ Created demo user: demo@voxora.io / demo123456`)
+  console.log(`✅ Created demo user: demo@callspsy.com / demo123456`)
   console.log(`✅ Org: ${org.name}`)
   console.log('🎉 Seed complete!')
 }

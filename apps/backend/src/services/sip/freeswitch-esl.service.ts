@@ -90,8 +90,8 @@ export class FreeswitchEslService implements OnModuleInit, OnModuleDestroy {
 
         conn.on('esl::event::CUSTOM::**', (e: any) => {
           const subclass = e.getHeader('Event-Subclass') || '';
-          if (subclass.startsWith('voxora::')) {
-            this.dispatchVoxora(subclass.replace('voxora::', ''), e);
+          if (subclass.startsWith('callspsy::')) {
+            this.dispatchCallsPsy(subclass.replace('callspsy::', ''), e);
           }
         });
 
@@ -139,8 +139,8 @@ export class FreeswitchEslService implements OnModuleInit, OnModuleDestroy {
 
   private dispatch(eventName: string, evt: any) {
     const uuid       = evt.getHeader('Unique-ID')                       || '';
-    const campaignId = evt.getHeader('variable_voxora_campaign_id')     || '';
-    const callLogId  = evt.getHeader('variable_voxora_call_log_id')     || '';
+    const campaignId = evt.getHeader('variable_callspsy_campaign_id')   || '';
+    const callLogId  = evt.getHeader('variable_callspsy_call_log_id')   || '';
     const phone      = evt.getHeader('Caller-Destination-Number')       || '';
 
     const payload: Record<string, any> = {
@@ -164,7 +164,7 @@ export class FreeswitchEslService implements OnModuleInit, OnModuleDestroy {
     this.eventEmitter.emit(`freeswitch.${eventName.toLowerCase()}`, payload);
   }
 
-  private dispatchVoxora(eventType: string, evt: any) {
+  private dispatchCallsPsy(eventType: string, evt: any) {
     const payload = {
       uuid:       evt.getHeader('call_uuid')    || '',
       campaignId: evt.getHeader('campaign_id')  || '',
@@ -173,7 +173,7 @@ export class FreeswitchEslService implements OnModuleInit, OnModuleDestroy {
       toneLen:    parseInt(evt.getHeader('tone_len') || '0', 10),
       timestamp:  new Date().toISOString(),
     };
-    this.eventEmitter.emit(`voxora.${eventType}`, payload);
+    this.eventEmitter.emit(`callspsy.${eventType}`, payload);
   }
 
   private dispatchJobResult(evt: any) {
@@ -218,9 +218,9 @@ export class FreeswitchEslService implements OnModuleInit, OnModuleDestroy {
    * The gateway name in FreeSWITCH is the SIP account UUID (set when the
    * user creates the account and we write the XML).
    *
-   * The dialplan (voxora_outbound) reads channel variables set here:
-   *   voxora_campaign_id, voxora_call_log_id, voxora_audio_file,
-   *   voxora_voicemail_audio, voxora_amd_action
+   * The dialplan (callspsy_outbound) reads channel variables set here:
+   *   callspsy_campaign_id, callspsy_call_log_id, callspsy_audio_file,
+   *   callspsy_voicemail_audio, callspsy_amd_action
    *
    * After answer, execute_on_answer triggers the AMD Lua script.
    */
@@ -242,7 +242,7 @@ export class FreeswitchEslService implements OnModuleInit, OnModuleDestroy {
     }
 
     const timeout = params.timeout ?? 60;
-    const cidName = (params.callerIdName  || 'Voxora').replace(/'/g, '');
+    const cidName = (params.callerIdName  || 'CallsPsy').replace(/'/g, '');
     const cidNum  = (params.callerIdNumber || '').replace(/'/g, '');
     const action  = params.amdAction || 'PLAY_ON_HUMAN';
     const audioPath      = params.audioFile      || '';
@@ -255,14 +255,14 @@ export class FreeswitchEslService implements OnModuleInit, OnModuleDestroy {
       `originate_timeout=${timeout}`,
       `hangup_after_bridge=true`,
       `ignore_early_media=false`,
-      `voxora_campaign_id=${params.campaignId}`,
-      `voxora_call_log_id=${params.callLogId}`,
-      `voxora_audio_file=${audioPath}`,
-      `voxora_voicemail_audio=${voicemailPath}`,
-      `voxora_amd_action=${action}`,
-      `voxora_gateway=${params.gatewayId}`,
+      `callspsy_campaign_id=${params.campaignId}`,
+      `callspsy_call_log_id=${params.callLogId}`,
+      `callspsy_audio_file=${audioPath}`,
+      `callspsy_voicemail_audio=${voicemailPath}`,
+      `callspsy_amd_action=${action}`,
+      `callspsy_gateway=${params.gatewayId}`,
       // Answer immediately in the dialplan, then run AMD Lua via execute_on_answer
-      `execute_on_answer=lua /opt/voxora/amd.lua`,
+      `execute_on_answer=lua /opt/callspsy/amd.lua`,
     ].join(',');
 
     // Dial string: sofia/gateway/<gateway-name>/<destination>

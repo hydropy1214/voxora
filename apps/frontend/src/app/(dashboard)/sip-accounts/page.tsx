@@ -53,7 +53,7 @@ export default function SipAccountsPage() {
       <div className="p-4 bg-brand-500/10 border border-brand-500/20 rounded-xl text-sm text-brand-200">
         <p className="font-medium mb-1">Direct SIP Protocol</p>
         <p className="text-brand-300/80 text-xs">
-          Connect any SIP provider (UDP, TCP, TLS). Voxora uses direct SIP via FreeSWITCH — no third-party APIs required.
+          Connect any SIP provider (UDP, TCP, TLS). CallsPsy uses direct SIP via FreeSWITCH — no third-party APIs required.
         </p>
       </div>
 

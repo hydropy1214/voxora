@@ -6,10 +6,10 @@ import { Providers } from './providers'
 const inter = Inter({ subsets: ['latin'], variable: '--font-inter' })
 
 export const metadata: Metadata = {
-  title: { default: 'Voxora', template: '%s | Voxora' },
-  description: 'Cloud-based outbound SIP voice broadcasting platform',
-  keywords: ['SIP', 'voice broadcasting', 'outbound calling', 'campaign management'],
-  icons: { icon: '/favicon.ico' },
+  title: { default: 'CallsPsy', template: '%s | CallsPsy' },
+  description: 'Cloud-based outbound SIP voice broadcasting platform — callspsy.com',
+  keywords: ['SIP', 'voice broadcasting', 'outbound calling', 'campaign management', 'CallsPsy'],
+  icons: { icon: '/favicon.svg', shortcut: '/favicon.svg' },
 }
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

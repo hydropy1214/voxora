@@ -1,7 +1,7 @@
 version: '3.9'
 
 # ============================================================
-#  Voxora Development Overrides
+#  CallsPsy Development Overrides
 #  Usage: docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d
 #  Telephony services are disabled (use --profile telephony to enable)
 # ============================================================
@@ -29,7 +29,7 @@ services:
       NODE_ENV: development
       DB_PASSWORD: dev_password
       REDIS_PASSWORD: dev_redis_pass
-      DATABASE_URL: postgresql://voxora:dev_password@postgres:5432/voxora_db?schema=public
+      DATABASE_URL: postgresql://callspsy:dev_password@postgres:5432/callspsy_db?schema=public
       FREESWITCH_HOST: host.docker.internal
     ports:
       - "3001:3001"

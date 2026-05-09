@@ -1,4 +1,4 @@
-# Voxora — Cloud SIP Voice Broadcasting Platform
+# CallsPsy — Cloud SIP Voice Broadcasting Platform
 
 <div align="center">
 
@@ -24,7 +24,7 @@ No Twilio. No Plivo. No telecom APIs. Your SIP provider. Your calls.
 
 ## Table of Contents
 
-1. [What is Voxora?](#1-what-is-voxora)
+1. [What is CallsPsy?](#1-what-is-callspsy)
 2. [How It Works — Plain English](#2-how-it-works--plain-english)
 3. [Telecom Architecture Explained](#3-telecom-architecture-explained)
 4. [Full System Architecture](#4-full-system-architecture)
@@ -44,11 +44,11 @@ No Twilio. No Plivo. No telecom APIs. Your SIP provider. Your calls.
 
 ---
 
-## 1. What is Voxora?
+## 1. What is CallsPsy?
 
-Voxora is a **self-hosted SaaS platform** that lets you run outbound voice broadcasting campaigns at scale.
+CallsPsy is a **self-hosted SaaS platform** that lets you run outbound voice broadcasting campaigns at scale.
 
-### What you can do with Voxora
+### What you can do with CallsPsy
 
 | Feature | Description |
 |---------|-------------|
@@ -62,7 +62,7 @@ Voxora is a **self-hosted SaaS platform** that lets you run outbound voice broad
 | **SIP accounts** | Connect any SIP provider (VoIP.ms, Vonage SIP, BulkVS, etc.) |
 | **Analytics** | Answer rates, human rates, voicemail rates, call quality |
 
-### What Voxora is NOT
+### What CallsPsy is NOT
 
 - ❌ Not an inbound call center
 - ❌ Not a PBX or phone system
@@ -76,23 +76,23 @@ Voxora is a **self-hosted SaaS platform** that lets you run outbound voice broad
 Here is the complete flow in plain English, from signup to a completed call:
 
 ```
-1. You sign up and log in to the Voxora dashboard.
+1. You sign up and log in to the CallsPsy dashboard.
 
 2. You add a SIP account:
    → Enter your SIP provider's server, username, and password.
-   → Voxora registers your account with FreeSWITCH (a media server).
+   → CallsPsy registers your account with FreeSWITCH (a media server).
    → FreeSWITCH sends a SIP REGISTER message to your provider.
    → Your provider confirms registration.
    → Status shows "Registered" on the dashboard.
 
 3. You upload contacts:
    → Upload a CSV file with phone numbers.
-   → Voxora validates each number (correct format, no duplicates).
+   → CallsPsy validates each number (correct format, no duplicates).
    → Valid numbers are stored, ready to dial.
 
 4. You upload an audio file:
    → Upload an MP3 or WAV of your message.
-   → Voxora stores it and detects its duration.
+   → CallsPsy stores it and detects its duration.
 
 5. You create a campaign:
    → Select your SIP account, contact list, and audio file.
@@ -101,7 +101,7 @@ Here is the complete flow in plain English, from signup to a completed call:
    → Choose what happens when a voicemail answers (hang up, or leave a voicemail).
 
 6. You start the campaign:
-   → Voxora adds a job to the queue (BullMQ / Redis).
+   → CallsPsy adds a job to the queue (BullMQ / Redis).
    → A worker picks it up and starts dialing.
    → For each contact, it tells FreeSWITCH to call that number.
    → FreeSWITCH dials through your SIP provider.
@@ -148,7 +148,7 @@ Examples: VoIP.ms, BulkVS, Vonage SIP, Bandwidth, Flowroute, DIDWW.
 │                        Your Server                                   │
 │                                                                     │
 │  ┌──────────┐    ESL API    ┌────────────┐   SIP INVITE  ┌────────┐│
-│  │  Voxora  │ ──────────►  │ FreeSWITCH │ ────────────► │Kamailio││
+│  │  CallsPsy  │ ──────────►  │ FreeSWITCH │ ────────────► │Kamailio││
 │  │  Backend │              │  (Media    │               │ (SIP   ││
 │  │  (NestJS)│ ◄──────────  │   Server)  │               │ Proxy) ││
 │  └──────────┘  ESL Events  └────────────┘               └───┬────┘│
@@ -183,7 +183,7 @@ Examples: VoIP.ms, BulkVS, Vonage SIP, Bandwidth, Flowroute, DIDWW.
 
 ### What is ESL?
 
-**ESL (Event Socket Layer)** is FreeSWITCH's control API. It is a TCP connection on port 8021. The Voxora backend connects to it and:
+**ESL (Event Socket Layer)** is FreeSWITCH's control API. It is a TCP connection on port 8021. The CallsPsy backend connects to it and:
 - Sends commands: "place this call", "hang up this call", "check gateway status"
 - Receives events: "call answered", "call ended", "AMD result"
 
@@ -194,7 +194,7 @@ Examples: VoIP.ms, BulkVS, Vonage SIP, Bandwidth, Flowroute, DIDWW.
 - Detects machine greeting patterns (automated voice + beep)
 - Returns: `HUMAN`, `MACHINE`, `FAX`, or `NOTSURE`
 
-Voxora then acts on the result:
+CallsPsy then acts on the result:
 - **HUMAN** → Play main audio file
 - **MACHINE** → Drop voicemail (or hang up, depending on settings)
 - **FAX** → Hang up
@@ -208,7 +208,7 @@ When your server is behind AWS (or any cloud), it has two IPs:
 
 For SIP/RTP to work across the internet, FreeSWITCH must advertise the **public IP** in SIP headers and SDP (media negotiation). If it advertises the private IP, the SIP provider cannot send audio to it.
 
-Voxora sets `ext-rtp-ip` and `ext-sip-ip` in FreeSWITCH to your public IP automatically via `setup.sh` and the Docker entrypoint.
+CallsPsy sets `ext-rtp-ip` and `ext-sip-ip` in FreeSWITCH to your public IP automatically via `setup.sh` and the Docker entrypoint.
 
 ---
 
@@ -247,7 +247,7 @@ Voxora sets `ext-rtp-ip` and `ext-sip-ip` in FreeSWITCH to your public IP automa
                               │      SIP Port: 5080               │
                               │      ESL Port: 8021               │
                               │   Reads gateways from:           │
-                              │   /var/voxora/gateways/*.xml     │
+                              │   /var/callspsy/gateways/*.xml     │
                               └───────────────────┬──────────────┘
                                                   │ SIP INVITE
                               ┌───────────────────▼──────────────┐
@@ -341,8 +341,8 @@ Before running setup, open these ports in your EC2 Security Group:
 ssh -i your-key.pem ubuntu@YOUR_EC2_IP
 
 # 2. Clone the repository
-git clone https://github.com/hydropy1214/voxora.git
-cd voxora
+git clone https://github.com/hydropy1214/callspsy.git
+cd callspsy
 
 # 3. Run one-click setup (takes ~10 minutes on first run)
 sudo ./setup.sh
@@ -350,7 +350,7 @@ sudo ./setup.sh
 
 **With a custom domain:**
 ```bash
-sudo ./setup.sh --domain app.voxora.io
+sudo ./setup.sh --domain app.callspsy.io
 ```
 
 **If using AWS Security Groups (skip UFW firewall config):**
@@ -377,7 +377,7 @@ sudo ./setup.sh --force
 | 8 | Builds custom Docker images (FreeSWITCH + Kamailio + backend + frontend) |
 | 9 | Starts PostgreSQL and Redis, waits for health checks |
 | 10 | Runs Prisma database migrations (creates all tables) |
-| 11 | Seeds demo account (`demo@voxora.io` / `demo123456`) |
+| 11 | Seeds demo account (`demo@callspsy.io` / `demo123456`) |
 | 12 | Starts telephony stack (RTPengine → Coturn → Kamailio → FreeSWITCH) |
 | 13 | Starts application (backend → frontend → nginx), prints all URLs |
 
@@ -403,8 +403,8 @@ apt-get install -y nodejs
 ### Step 2 — Clone and Configure
 
 ```bash
-git clone https://github.com/hydropy1214/voxora.git
-cd voxora
+git clone https://github.com/hydropy1214/callspsy.git
+cd callspsy
 
 # Copy the environment template
 cp .env.example .env
@@ -453,7 +453,7 @@ API Docs:   http://YOUR_IP:3001/api/docs
 Status:     http://YOUR_IP:3000/status
 ```
 
-**Demo credentials:** `demo@voxora.io` / `demo123456`
+**Demo credentials:** `demo@callspsy.io` / `demo123456`
 
 ---
 
@@ -465,7 +465,7 @@ After installation, follow this checklist:
 
 ```
 □ 1. Open the dashboard at http://YOUR_IP:3000
-□ 2. Log in with demo@voxora.io / demo123456
+□ 2. Log in with demo@callspsy.io / demo123456
 □ 3. Create your own account (Sign Up)
 □ 4. Go to Settings → change password
 □ 5. Go to System Status → check all services are green
@@ -512,8 +512,8 @@ From your SIP provider you need:
 5. Wait 5–10 seconds, then click **Test Connection**
 
 **What happens when you add an account:**
-1. Voxora encrypts your password (AES-256) in the database
-2. Writes a gateway config file to `/var/voxora/gateways/<uuid>.xml`
+1. CallsPsy encrypts your password (AES-256) in the database
+2. Writes a gateway config file to `/var/callspsy/gateways/<uuid>.xml`
 3. Tells FreeSWITCH to reload its SIP profile (`sofia rescan`)
 4. FreeSWITCH sends `SIP REGISTER` to your provider
 5. Provider responds with `200 OK` → status shows **Registered**
@@ -534,7 +534,7 @@ From your SIP provider you need:
 **VoIP.ms:**
 - Enable "Sub-Accounts" in VoIP.ms portal
 - Set `SIP Server` to `sip.voip.ms` (or a regional server like `chicago.voip.ms`)
-- Username format: `accountid_subaccount` (e.g. `123456_voxora`)
+- Username format: `accountid_subaccount` (e.g. `123456_callspsy`)
 
 **BulkVS:**
 - Create a SIP Trunk in BulkVS portal
@@ -564,7 +564,7 @@ phone,first_name,last_name,company
 +15555555555,Bob,Jones,
 ```
 
-> Voxora auto-detects the phone column. Supported column names: `phone`, `mobile`, `cell`, `telephone`, `number`.
+> CallsPsy auto-detects the phone column. Supported column names: `phone`, `mobile`, `cell`, `telephone`, `number`.
 
 What happens after upload:
 - Phone numbers are validated with `libphonenumber-js`
@@ -694,11 +694,11 @@ ESL ORIGINATE COMMAND:
   originate
     {origination_caller_id_name='Acme Corp',
      origination_caller_id_number='+15551112222',
-     voxora_campaign_id=<uuid>,
-     voxora_call_log_id=<uuid>,
-     voxora_audio_file=/app/uploads/audio/<uuid>.mp3,
-     voxora_amd_action=PLAY_ON_HUMAN,
-     execute_on_answer=lua /opt/voxora/amd.lua}
+     callspsy_campaign_id=<uuid>,
+     callspsy_call_log_id=<uuid>,
+     callspsy_audio_file=/app/uploads/audio/<uuid>.mp3,
+     callspsy_amd_action=PLAY_ON_HUMAN,
+     execute_on_answer=lua /opt/callspsy/amd.lua}
     sofia/gateway/<sip-account-uuid>/+15551234567
     &park()
     ↓
@@ -723,21 +723,21 @@ SIP Provider routes to PSTN:
     ↓
 Phone rings → Person/machine answers → SIP 200 OK
     ↓
-execute_on_answer: FreeSWITCH runs /opt/voxora/amd.lua
+execute_on_answer: FreeSWITCH runs /opt/callspsy/amd.lua
 ```
 
 ### Phase 5 — AMD Detection (Lua)
 
 ```
 amd.lua reads channel variables:
-  voxora_audio_file, voxora_amd_action, etc.
+  callspsy_audio_file, callspsy_amd_action, etc.
     ↓
 AMD detection:
   1. Check amd_result variable (set by mod_spandsp if available)
   2. Check amd_tone_length > 0 → MACHINE (detected beep)
   3. Default: HUMAN
     ↓
-Fire custom ESL event: voxora::human_answer or voxora::machine_answer
+Fire custom ESL event: callspsy::human_answer or callspsy::machine_answer
     ↓
 HUMAN  → playback /app/uploads/audio/<uuid>.mp3
 MACHINE (VOICEMAIL_DROP) → wait for beep → playback voicemail.mp3
@@ -752,7 +752,7 @@ hangup NORMAL_CLEARING
 ```
 FreeSWITCH sends ESL event: CHANNEL_HANGUP_COMPLETE
   Headers: Unique-ID, Hangup-Cause, variable_billsec,
-           variable_amd_result, variable_voxora_call_log_id
+           variable_amd_result, variable_callspsy_call_log_id
     ↓
 SipService.handleHangup() processes the event:
     ↓
@@ -783,22 +783,22 @@ Live Monitor updates in real time
 
 | Container | Image | What it does | Ports |
 |-----------|-------|-------------|-------|
-| `voxora_postgres` | postgres:16-alpine | Stores all application data. Tables: users, campaigns, call_logs, sip_accounts, contacts, audio_files, etc. | 5432 (internal) |
-| `voxora_redis` | redis:7-alpine | Two jobs: (1) BullMQ campaign job queues — workers pick up jobs and place calls. (2) API response caching. | 6379 (internal) |
-| `voxora_freeswitch` | signalwire/freeswitch:v1.10 | The SIP media server. Places calls, handles audio, runs AMD. Reads gateway configs from shared volume. Exposes ESL on port 8021 for the backend to control it. | 5080/UDP+TCP (SIP), 8021/TCP (ESL) |
-| `voxora_kamailio` | kamailio/kamailio:5.7-debian | SIP proxy on port 5060. Routes calls from FreeSWITCH to your SIP provider. Integrates RTPengine for media relay. Provides load balancing and failover. | 5060/UDP+TCP (SIP) |
-| `voxora_rtpengine` | drachtio/rtpengine:latest | RTP media relay. Ensures audio packets travel correctly through NAT (AWS). Maps public IP ↔ private IP for audio streams. | 2223/UDP (control), 10000-20000/UDP (media) |
-| `voxora_coturn` | coturn/coturn:4.6-alpine | STUN/TURN server. Helps WebRTC clients discover their public IP and relay media. Optional for pure SIP. | 3478/UDP+TCP (STUN/TURN) |
-| `voxora_backend` | Built from apps/backend | NestJS REST API + Socket.io WebSocket server. All business logic: auth, campaigns, contacts, analytics, billing. | 3001/TCP |
-| `voxora_frontend` | Built from apps/frontend | Next.js 14 dashboard. All UI pages: campaigns, contacts, audio files, live monitor, analytics, billing, status. | 3000/TCP |
-| `voxora_nginx` | nginx:1.25-alpine | Reverse proxy. Routes `/api/*` to backend, `/socket.io/*` to WebSocket, `/` to frontend. Rate limiting. Optional SSL. | 80/TCP, 443/TCP |
+| `callspsy_postgres` | postgres:16-alpine | Stores all application data. Tables: users, campaigns, call_logs, sip_accounts, contacts, audio_files, etc. | 5432 (internal) |
+| `callspsy_redis` | redis:7-alpine | Two jobs: (1) BullMQ campaign job queues — workers pick up jobs and place calls. (2) API response caching. | 6379 (internal) |
+| `callspsy_freeswitch` | signalwire/freeswitch:v1.10 | The SIP media server. Places calls, handles audio, runs AMD. Reads gateway configs from shared volume. Exposes ESL on port 8021 for the backend to control it. | 5080/UDP+TCP (SIP), 8021/TCP (ESL) |
+| `callspsy_kamailio` | kamailio/kamailio:5.7-debian | SIP proxy on port 5060. Routes calls from FreeSWITCH to your SIP provider. Integrates RTPengine for media relay. Provides load balancing and failover. | 5060/UDP+TCP (SIP) |
+| `callspsy_rtpengine` | drachtio/rtpengine:latest | RTP media relay. Ensures audio packets travel correctly through NAT (AWS). Maps public IP ↔ private IP for audio streams. | 2223/UDP (control), 10000-20000/UDP (media) |
+| `callspsy_coturn` | coturn/coturn:4.6-alpine | STUN/TURN server. Helps WebRTC clients discover their public IP and relay media. Optional for pure SIP. | 3478/UDP+TCP (STUN/TURN) |
+| `callspsy_backend` | Built from apps/backend | NestJS REST API + Socket.io WebSocket server. All business logic: auth, campaigns, contacts, analytics, billing. | 3001/TCP |
+| `callspsy_frontend` | Built from apps/frontend | Next.js 14 dashboard. All UI pages: campaigns, contacts, audio files, live monitor, analytics, billing, status. | 3000/TCP |
+| `callspsy_nginx` | nginx:1.25-alpine | Reverse proxy. Routes `/api/*` to backend, `/socket.io/*` to WebSocket, `/` to frontend. Rate limiting. Optional SSL. | 80/TCP, 443/TCP |
 
 ### Shared Volumes
 
 | Volume | Shared Between | Purpose |
 |--------|---------------|---------|
 | `uploads_data` | Backend (write) + FreeSWITCH (read) | Audio files (MP3/WAV) uploaded by users. Backend stores them, FreeSWITCH plays them. Same path: `/app/uploads` |
-| `freeswitch_gateways` | Backend (write) + FreeSWITCH (read) | SIP gateway XML configs. Backend writes one file per SIP account. FreeSWITCH loads them via `sofia profile rescan`. Path: `/var/voxora/gateways` |
+| `freeswitch_gateways` | Backend (write) + FreeSWITCH (read) | SIP gateway XML configs. Backend writes one file per SIP account. FreeSWITCH loads them via `sofia profile rescan`. Path: `/var/callspsy/gateways` |
 | `freeswitch_recordings` | FreeSWITCH | Call recordings (optional). |
 | `postgres_data` | PostgreSQL | Database files |
 | `redis_data` | Redis | Persistent queue and cache data |
@@ -835,8 +835,8 @@ The `.env` file is auto-generated by `setup.sh`. Here is every variable explaine
 |----------|---------|-------------|
 | `JWT_SECRET` | *(64-char random)* | Signs JWT access tokens. Must be 32+ chars. Changing this invalidates all sessions. |
 | `JWT_REFRESH_SECRET` | *(64-char random)* | Signs JWT refresh tokens. Different from JWT_SECRET. |
-| `DB_PASSWORD` | *(random)* | PostgreSQL password for the `voxora` user. |
-| `DATABASE_URL` | `postgresql://voxora:...@postgres:5432/voxora_db` | Full PostgreSQL connection string used by Prisma. |
+| `DB_PASSWORD` | *(random)* | PostgreSQL password for the `callspsy` user. |
+| `DATABASE_URL` | `postgresql://callspsy:...@postgres:5432/callspsy_db` | Full PostgreSQL connection string used by Prisma. |
 | `REDIS_PASSWORD` | *(random)* | Redis authentication password. |
 | `FREESWITCH_ESL_PASSWORD` | *(random)* | Password for FreeSWITCH Event Socket. Must match what's in FreeSWITCH config. |
 | `PUBLIC_IP` | `54.123.45.67` | Your server's public IP. Used in FreeSWITCH NAT config (`ext-rtp-ip`). |
@@ -846,11 +846,11 @@ The `.env` file is auto-generated by `setup.sh`. Here is every variable explaine
 
 | Variable | Example | Description |
 |----------|---------|-------------|
-| `DOMAIN` | `app.voxora.io` | Your domain name. Used in emails and SSL config. |
+| `DOMAIN` | `app.callspsy.io` | Your domain name. Used in emails and SSL config. |
 | `MAIL_HOST` | `smtp.mailgun.org` | SMTP server for email verification and password reset. |
-| `MAIL_USER` | `postmaster@mg.voxora.io` | SMTP username. |
+| `MAIL_USER` | `postmaster@mg.callspsy.io` | SMTP username. |
 | `MAIL_PASS` | `your-password` | SMTP password. |
-| `MAIL_FROM` | `noreply@voxora.io` | From address for emails. |
+| `MAIL_FROM` | `noreply@callspsy.io` | From address for emails. |
 
 ### Billing (Optional)
 
@@ -868,7 +868,7 @@ The `.env` file is auto-generated by `setup.sh`. Here is every variable explaine
 ## 14. Project Structure
 
 ```
-voxora/
+callspsy/
 ├── setup.sh                    # One-click deploy script (350 lines)
 ├── Makefile                    # Management commands (make help)
 ├── docker-compose.yml          # Production stack (9 services)
@@ -953,7 +953,7 @@ voxora/
 │   │   │   │   ├── modules.conf.xml  # Loaded modules list
 │   │   │   │   └── switch.conf.xml   # Core settings
 │   │   │   └── dialplan/
-│   │   │       └── voxora_outbound.xml  # Outbound call routing
+│   │   │       └── callspsy_outbound.xml  # Outbound call routing
 │   │   └── scripts/
 │   │       ├── amd.lua          # AMD detection + audio playback
 │   │       ├── call_complete.lua # Fires on call end
@@ -967,7 +967,7 @@ voxora/
 │   │
 │   ├── nginx/
 │   │   ├── nginx.conf           # Performance + logging config
-│   │   └── conf.d/voxora.conf   # Virtual host: proxy + WebSocket + rate limiting
+│   │   └── conf.d/callspsy.conf   # Virtual host: proxy + WebSocket + rate limiting
 │   │
 │   └── coturn/
 │       └── turnserver.conf      # STUN/TURN config (written by setup.sh)
@@ -1106,7 +1106,7 @@ nc -zv 127.0.0.1 8021
 docker compose exec freeswitch fs_cli -x "sofia status gateway <account-uuid>"
 
 # 2. Check if gateway XML was written
-ls /var/lib/docker/volumes/voxora_freeswitch_gateways/_data/
+ls /var/lib/docker/volumes/callspsy_freeswitch_gateways/_data/
 # Should show <account-uuid>.xml
 
 # 3. Verify SIP credentials are correct
@@ -1118,7 +1118,7 @@ nc -zv YOUR_PUBLIC_IP 5060
 # 5. View SIP registration traffic in FreeSWITCH console
 docker compose exec freeswitch fs_cli
 # Then type: sofia loglevel all 9
-# Then type: sofia profile voxora_outbound rescan
+# Then type: sofia profile callspsy_outbound rescan
 # Watch for REGISTER/401/403 responses
 
 # 6. AWS: Check Security Group allows outbound to provider on port 5060
@@ -1154,7 +1154,7 @@ curl -s https://checkip.amazonaws.com  # Compare these two
 # PUBLIC_IP in .env must be your actual public Elastic IP
 
 # 2. Verify FreeSWITCH is advertising the right IP
-docker compose exec freeswitch fs_cli -x "sofia status profile voxora_outbound"
+docker compose exec freeswitch fs_cli -x "sofia status profile callspsy_outbound"
 # Look for ext-rtp-ip — should be your public IP
 
 # 3. Verify RTP ports 10000-20000 are open in Security Group
@@ -1191,7 +1191,7 @@ docker compose ps postgres
 docker compose logs postgres | tail -20
 
 # Test connection
-docker compose exec postgres pg_isready -U voxora
+docker compose exec postgres pg_isready -U callspsy
 
 # Reset everything (WARNING: deletes all data)
 docker compose down -v
@@ -1207,7 +1207,7 @@ docker compose exec backend npm run prisma:seed
 **Q: Do I need to install FreeSWITCH or Kamailio on my server?**  
 A: No. Everything runs in Docker containers. `docker compose up -d` downloads and starts all services automatically.
 
-**Q: Which SIP providers work with Voxora?**  
+**Q: Which SIP providers work with CallsPsy?**  
 A: Any standard SIP trunk provider that supports SIP REGISTER. Popular ones: VoIP.ms, BulkVS, Flowroute, Vonage SIP, DIDWW, Telnyx (SIP trunk, not API), Bandwidth.
 
 **Q: How many concurrent calls can I run?**  
@@ -1217,18 +1217,18 @@ A: Depends on your server. A `c5.xlarge` (4 vCPU, 8GB) can handle ~100 concurren
 A: The backend automatically re-registers all SIP accounts with FreeSWITCH when the ESL connection re-establishes. Running campaigns will fail and need to be restarted.
 
 **Q: How do I add SSL / HTTPS?**  
-A: Run `make ssl-certbot` (requires a domain pointing to your server) or `make ssl-generate` for a self-signed cert. Then uncomment the HTTPS server block in `infra/nginx/conf.d/voxora.conf`.
+A: Run `make ssl-certbot` (requires a domain pointing to your server) or `make ssl-generate` for a self-signed cert. Then uncomment the HTTPS server block in `infra/nginx/conf.d/callspsy.conf`.
 
 **Q: How do I backup the database?**  
 A: `make backup` creates a timestamped gzip dump in `./backups/`. Restore with `make restore BACKUP=./backups/file.sql.gz`.
 
-**Q: Can I use Voxora without a domain name?**  
+**Q: Can I use CallsPsy without a domain name?**  
 A: Yes. Access it directly at `http://YOUR_IP:3000`. SSL is optional.
 
 **Q: The setup takes a long time. Is that normal?**  
 A: Yes. Building FreeSWITCH and Kamailio Docker images takes 5–10 minutes on first run. Subsequent runs are instant (images are cached).
 
-**Q: How do I update Voxora?**  
+**Q: How do I update CallsPsy?**  
 A: `git pull && make build && make up` (or `make update` for zero-downtime app-only update).
 
 **Q: How do I view FreeSWITCH logs?**  
@@ -1276,7 +1276,7 @@ make ssl-generate                # Self-signed cert
 
 ## License
 
-MIT © Voxora
+MIT © CallsPsy
 
 ---
 

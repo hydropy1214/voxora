@@ -1,5 +1,5 @@
 # ============================================================
-#  Voxora — Production Management Makefile
+#  CallsPsy — Production Management Makefile
 #  Usage: make <target>
 # ============================================================
 
@@ -133,7 +133,7 @@ shell-frontend: ## Open frontend shell
 	$(COMPOSE) $(COMPOSE_FILE) exec frontend sh
 
 shell-db: ## Open PostgreSQL console
-	$(COMPOSE) $(COMPOSE_FILE) exec postgres psql -U $(DB_USER:-voxora) $(DB_NAME:-voxora_db)
+	$(COMPOSE) $(COMPOSE_FILE) exec postgres psql -U $(DB_USER:-callspsy) $(DB_NAME:-callspsy_db)
 
 shell-redis: ## Open Redis console
 	$(COMPOSE) $(COMPOSE_FILE) exec redis redis-cli -a $(REDIS_PASSWORD)
@@ -166,14 +166,14 @@ backup: ## Backup PostgreSQL database
 	@mkdir -p ./backups
 	@TIMESTAMP=$$(date +%Y%m%d_%H%M%S); \
 	$(COMPOSE) $(COMPOSE_FILE) exec -T postgres \
-		pg_dump -U $(DB_USER:-voxora) $(DB_NAME:-voxora_db) \
-		| gzip > ./backups/voxora_$$TIMESTAMP.sql.gz; \
-	echo "Backup saved: ./backups/voxora_$$TIMESTAMP.sql.gz"
+		pg_dump -U $(DB_USER:-callspsy) $(DB_NAME:-callspsy_db) \
+		| gzip > ./backups/callspsy_$$TIMESTAMP.sql.gz; \
+	echo "Backup saved: ./backups/callspsy_$$TIMESTAMP.sql.gz"
 
 restore: ## Restore PostgreSQL database (BACKUP=./backups/file.sql.gz)
 	@test -f "$(BACKUP)" || (echo "Set BACKUP=path/to/file.sql.gz" && exit 1)
 	@gunzip -c $(BACKUP) | $(COMPOSE) $(COMPOSE_FILE) exec -T postgres \
-		psql -U $(DB_USER:-voxora) $(DB_NAME:-voxora_db)
+		psql -U $(DB_USER:-callspsy) $(DB_NAME:-callspsy_db)
 	@echo "Restore complete"
 
 ##@ SSL / Certificates
@@ -183,7 +183,7 @@ ssl-generate: ## Generate self-signed SSL certificate for testing
 	@openssl req -x509 -nodes -days 365 -newkey rsa:2048 \
 		-keyout ./infra/nginx/ssl/privkey.pem \
 		-out ./infra/nginx/ssl/fullchain.pem \
-		-subj "/CN=$(DOMAIN:-localhost)/O=Voxora/C=US"
+		-subj "/CN=$(DOMAIN:-localhost)/O=CallsPsy/C=US"
 	@echo "Self-signed cert generated in ./infra/nginx/ssl/"
 
 ssl-certbot: ## Obtain Let's Encrypt certificate (requires --domain set in .env)

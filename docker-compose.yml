@@ -1,7 +1,7 @@
 version: '3.9'
 
 # ============================================================
-#  Voxora Production Docker Compose
+#  CallsPsy Production Docker Compose
 #  All services are self-contained — no pre-installation needed.
 #  Run: sudo ./setup.sh  (or: docker compose up -d)
 # ============================================================
@@ -22,7 +22,7 @@ x-healthcheck-base: &healthcheck-base
   start_period: 30s
 
 networks:
-  voxora_net:
+  callspsy_net:
     driver: bridge
     ipam:
       driver: default
@@ -50,23 +50,23 @@ services:
   postgres:
     image: postgres:16-alpine
     <<: *restart-policy
-    container_name: voxora_postgres
+    container_name: callspsy_postgres
     environment:
-      POSTGRES_USER:     ${DB_USER:-voxora}
-      POSTGRES_PASSWORD: ${DB_PASSWORD:-voxora_pass}
-      POSTGRES_DB:       ${DB_NAME:-voxora_db}
+      POSTGRES_USER:     ${DB_USER:-callspsy}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-callspsy_pass}
+      POSTGRES_DB:       ${DB_NAME:-callspsy_db}
       PGDATA:            /var/lib/postgresql/data/pgdata
     volumes:
       - postgres_data:/var/lib/postgresql/data
       - ./scripts/postgres-init.sql:/docker-entrypoint-initdb.d/init.sql:ro
     networks:
-      voxora_net:
+      callspsy_net:
         ipv4_address: 172.20.0.10
     ports:
       - "127.0.0.1:5432:5432"
     healthcheck:
       <<: *healthcheck-base
-      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-voxora} -d ${DB_NAME:-voxora_db}"]
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-callspsy} -d ${DB_NAME:-callspsy_db}"]
       interval: 10s
       start_period: 15s
     logging: *default-logging
@@ -78,10 +78,10 @@ services:
   redis:
     image: redis:7-alpine
     <<: *restart-policy
-    container_name: voxora_redis
+    container_name: callspsy_redis
     command: >
       redis-server
-      --requirepass ${REDIS_PASSWORD:-voxora_redis}
+      --requirepass ${REDIS_PASSWORD:-callspsy_redis}
       --appendonly yes
       --appendfsync everysec
       --maxmemory 512mb
@@ -92,13 +92,13 @@ services:
     volumes:
       - redis_data:/data
     networks:
-      voxora_net:
+      callspsy_net:
         ipv4_address: 172.20.0.11
     ports:
       - "127.0.0.1:6379:6379"
     healthcheck:
       <<: *healthcheck-base
-      test: ["CMD", "redis-cli", "-a", "${REDIS_PASSWORD:-voxora_redis}", "ping"]
+      test: ["CMD", "redis-cli", "-a", "${REDIS_PASSWORD:-callspsy_redis}", "ping"]
       interval: 10s
     logging: *default-logging
 
@@ -110,7 +110,7 @@ services:
   coturn:
     image: coturn/coturn:4.6-alpine
     <<: *restart-policy
-    container_name: voxora_coturn
+    container_name: callspsy_coturn
     network_mode: host
     volumes:
       - ./infra/coturn/turnserver.conf:/etc/coturn/turnserver.conf:ro
@@ -136,7 +136,7 @@ services:
   rtpengine:
     image: drachtio/rtpengine:latest
     <<: *restart-policy
-    container_name: voxora_rtpengine
+    container_name: callspsy_rtpengine
     network_mode: host
     cap_add:
       - NET_ADMIN
@@ -175,7 +175,7 @@ services:
       context: ./infra/kamailio
       dockerfile: Dockerfile
     <<: *restart-policy
-    container_name: voxora_kamailio
+    container_name: callspsy_kamailio
     network_mode: host
     volumes:
       - ./infra/kamailio/kamailio.cfg:/etc/kamailio/kamailio.cfg.tmpl:ro
@@ -213,12 +213,12 @@ services:
       context: ./infra/freeswitch
       dockerfile: Dockerfile
     <<: *restart-policy
-    container_name: voxora_freeswitch
+    container_name: callspsy_freeswitch
     network_mode: host
     volumes:
       - ./infra/freeswitch/conf:/etc/freeswitch:ro
       # Writable gateway dir: backend writes XML here, FS reads/reloads it
-      - freeswitch_gateways:/var/voxora/gateways
+      - freeswitch_gateways:/var/callspsy/gateways
       # Audio uploads: backend writes MP3/WAV, FS reads them for playback
       - uploads_data:/app/uploads:ro
       - freeswitch_recordings:/var/lib/freeswitch/recordings
@@ -257,7 +257,7 @@ services:
       dockerfile: Dockerfile
       target: production
     <<: *restart-policy
-    container_name: voxora_backend
+    container_name: callspsy_backend
     env_file: .env
     environment:
       NODE_ENV:                    production
@@ -271,13 +271,13 @@ services:
     volumes:
       - uploads_data:/app/uploads
       # Gateway XML configs: backend writes these, FreeSWITCH reads them
-      - freeswitch_gateways:/var/voxora/gateways
+      - freeswitch_gateways:/var/callspsy/gateways
     environment:
-      FREESWITCH_GATEWAY_DIR: /var/voxora/gateways
+      FREESWITCH_GATEWAY_DIR: /var/callspsy/gateways
     ports:
       - "3001:3001"
     networks:
-      voxora_net:
+      callspsy_net:
         ipv4_address: 172.20.0.20
     depends_on:
       postgres:
@@ -301,7 +301,7 @@ services:
       dockerfile: Dockerfile
       target: production
     <<: *restart-policy
-    container_name: voxora_frontend
+    container_name: callspsy_frontend
     environment:
       NODE_ENV:                          production
       NEXT_PUBLIC_API_URL:               ${NEXT_PUBLIC_API_URL:-http://localhost:3001}
@@ -310,7 +310,7 @@ services:
     ports:
       - "3000:3000"
     networks:
-      voxora_net:
+      callspsy_net:
         ipv4_address: 172.20.0.21
     depends_on:
       backend:
@@ -328,7 +328,7 @@ services:
   nginx:
     image: nginx:1.25-alpine
     <<: *restart-policy
-    container_name: voxora_nginx
+    container_name: callspsy_nginx
     ports:
       - "80:80"
       - "443:443"
@@ -338,7 +338,7 @@ services:
       - nginx_ssl:/etc/nginx/ssl
       - uploads_data:/app/uploads:ro
     networks:
-      voxora_net:
+      callspsy_net:
         ipv4_address: 172.20.0.22
     depends_on:
       - backend

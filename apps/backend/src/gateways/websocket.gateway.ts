@@ -165,7 +165,7 @@ export class WebsocketGateway
     this.server.to('live-monitor').emit('stats:update', event);
   }
 
-  @OnEvent('voxora.human_answer')
+  @OnEvent('callspsy.human_answer')
   handleHumanAnswer(payload: any) {
     const event = { type: 'amd:human', ...payload, timestamp: new Date().toISOString() };
     if (payload.campaignId) {
@@ -174,7 +174,7 @@ export class WebsocketGateway
     }
   }
 
-  @OnEvent('voxora.machine_answer')
+  @OnEvent('callspsy.machine_answer')
   handleMachineAnswer(payload: any) {
     const event = { type: 'amd:machine', ...payload, timestamp: new Date().toISOString() };
     if (payload.campaignId) {

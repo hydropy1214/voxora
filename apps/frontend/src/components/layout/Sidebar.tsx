@@ -4,7 +4,7 @@ import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import {
   LayoutDashboard, Megaphone, Users, FileAudio, Wifi,
-  Activity, Mic, BarChart3, CreditCard, Settings, Waves, ChevronRight, MonitorCheck,
+  Activity, Mic, BarChart3, CreditCard, Settings, PhoneCall, ChevronRight, MonitorCheck,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
@@ -55,9 +55,9 @@ export function Sidebar() {
       {/* Logo */}
       <div className="h-16 flex items-center gap-3 px-5 border-b border-border">
         <div className="h-8 w-8 rounded-lg gradient-brand flex items-center justify-center flex-shrink-0">
-          <Waves className="h-4 w-4 text-white" />
+          <PhoneCall className="h-4 w-4 text-white" />
         </div>
-        <span className="font-bold text-lg">Voxora</span>
+        <span className="font-bold text-lg">CallsPsy</span>
       </div>
 
       {/* Navigation */}

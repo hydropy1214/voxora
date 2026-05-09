@@ -3,7 +3,7 @@ const nextConfig = {
   reactStrictMode: true,
   output: 'standalone',
   images: {
-    domains: ['localhost', 'app.voxora.io'],
+    domains: ['localhost', 'app.callspsy.com', 'callspsy.com'],
   },
   async rewrites() {
     return [

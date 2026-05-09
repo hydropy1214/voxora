@@ -1,4 +1,4 @@
--- Voxora PostgreSQL initialization
+-- CallsPsy PostgreSQL initialization
 -- Run once at container creation
 
 -- Performance settings

@@ -44,8 +44,8 @@ async function bootstrap() {
   // Swagger API docs
   if (configService.get('NODE_ENV') !== 'production') {
     const swaggerConfig = new DocumentBuilder()
-      .setTitle('Voxora API')
-      .setDescription('Voxora SIP Broadcasting Platform API')
+      .setTitle('CallsPsy API')
+      .setDescription('CallsPsy SIP Broadcasting Platform API')
       .setVersion('1.0')
       .addBearerAuth()
       .addApiKey({ type: 'apiKey', name: 'X-API-Key', in: 'header' }, 'api-key')
@@ -58,7 +58,7 @@ async function bootstrap() {
   }
 
   await app.listen(port);
-  Logger.log(`🚀 Voxora API running on http://localhost:${port}`, 'Bootstrap');
+  Logger.log(`🚀 CallsPsy API running on http://localhost:${port}`, 'Bootstrap');
   Logger.log(`📖 API Docs: http://localhost:${port}/api/docs`, 'Bootstrap');
 }
 

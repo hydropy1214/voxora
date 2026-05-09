@@ -134,14 +134,14 @@ export class SipService {
     );
   }
 
-  @OnEvent('voxora.human_answer')
+  @OnEvent('callspsy.human_answer')
   handleHumanAnswer(payload: any) {
     if (payload.campaignId) {
       this.wsGateway.emitCampaignEvent(payload.campaignId, 'amd:human', payload);
     }
   }
 
-  @OnEvent('voxora.machine_answer')
+  @OnEvent('callspsy.machine_answer')
   handleMachineAnswer(payload: any) {
     if (payload.campaignId) {
       this.wsGateway.emitCampaignEvent(payload.campaignId, 'amd:machine', payload);
