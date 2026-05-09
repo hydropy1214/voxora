@@ -97,9 +97,16 @@
         <param name="stun-enabled"       value="false"/>
         <param name="stun-auto-disable"  value="true"/>
 
-        <!-- TLS (disabled by default, enable for TLS SIP accounts) -->
-        <param name="tls"         value="false"/>
-        <param name="tls-version" value="tlsv1.2"/>
+        <!-- TLS — enabled for providers like Vonage Edge that require SIP-TLS -->
+        <param name="tls"                    value="true"/>
+        <param name="tls-sip-port"           value="5081"/>
+        <param name="tls-version"            value="tlsv1,tlsv1.1,tlsv1.2,tlsv1.3"/>
+        <param name="tls-cert-dir"           value="/etc/freeswitch/tls"/>
+        <param name="tls-verify-date"        value="true"/>
+        <param name="tls-verify-policy"      value="none"/>
+        <param name="tls-verify-depth"       value="2"/>
+        <param name="tls-passphrase"         value=""/>
+        <param name="tls-bind-params"        value="transport=tls"/>
       </settings>
 
       <gateways>
