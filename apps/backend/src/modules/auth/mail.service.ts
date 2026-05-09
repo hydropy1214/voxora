@@ -24,9 +24,9 @@ export class MailService {
     const verifyUrl = `${frontendUrl}/verify-email?token=${token}`;
 
     await this.transporter.sendMail({
-      from: this.config.get('MAIL_FROM', 'noreply@voxora.io'),
+      from: this.config.get('MAIL_FROM', 'noreply@callspsy.com'),
       to: email,
-      subject: 'Verify your Voxora account',
+      subject: 'Verify your CallsPsy account',
       html: this.verificationEmailHtml(name, verifyUrl),
     });
   }
@@ -36,9 +36,9 @@ export class MailService {
     const resetUrl = `${frontendUrl}/reset-password?token=${token}`;
 
     await this.transporter.sendMail({
-      from: this.config.get('MAIL_FROM', 'noreply@voxora.io'),
+      from: this.config.get('MAIL_FROM', 'noreply@callspsy.com'),
       to: email,
-      subject: 'Reset your Voxora password',
+      subject: 'Reset your CallsPsy password',
       html: this.resetPasswordEmailHtml(name, resetUrl),
     });
   }
@@ -49,10 +49,10 @@ export class MailService {
       <html>
       <body style="font-family: Inter, sans-serif; background: #0f0f0f; color: #fff; padding: 40px;">
         <div style="max-width: 600px; margin: 0 auto; background: #1a1a1a; border-radius: 12px; padding: 40px;">
-          <h1 style="color: #6366f1; margin-bottom: 8px;">Voxora</h1>
+          <h1 style="color: #7c6fff; margin-bottom: 8px;">CallsPsy</h1>
           <h2 style="margin-top: 24px;">Welcome, ${name}!</h2>
-          <p>Verify your email address to get started with Voxora.</p>
-          <a href="${url}" style="display: inline-block; background: #6366f1; color: white; padding: 12px 24px; border-radius: 8px; text-decoration: none; margin-top: 16px;">Verify Email</a>
+          <p>Verify your email address to get started with CallsPsy.</p>
+          <a href="${url}" style="display: inline-block; background: linear-gradient(135deg, #7c6fff, #a855f7); color: white; padding: 12px 24px; border-radius: 8px; text-decoration: none; margin-top: 16px;">Verify Email</a>
           <p style="color: #666; margin-top: 24px; font-size: 14px;">Link expires in 24 hours.</p>
         </div>
       </body>
@@ -66,10 +66,10 @@ export class MailService {
       <html>
       <body style="font-family: Inter, sans-serif; background: #0f0f0f; color: #fff; padding: 40px;">
         <div style="max-width: 600px; margin: 0 auto; background: #1a1a1a; border-radius: 12px; padding: 40px;">
-          <h1 style="color: #6366f1; margin-bottom: 8px;">Voxora</h1>
+          <h1 style="color: #7c6fff; margin-bottom: 8px;">CallsPsy</h1>
           <h2 style="margin-top: 24px;">Password Reset</h2>
-          <p>Hi ${name}, click the button below to reset your password.</p>
-          <a href="${url}" style="display: inline-block; background: #6366f1; color: white; padding: 12px 24px; border-radius: 8px; text-decoration: none; margin-top: 16px;">Reset Password</a>
+          <p>Hi ${name}, click the button below to reset your CallsPsy password.</p>
+          <a href="${url}" style="display: inline-block; background: linear-gradient(135deg, #7c6fff, #a855f7); color: white; padding: 12px 24px; border-radius: 8px; text-decoration: none; margin-top: 16px;">Reset Password</a>
           <p style="color: #666; margin-top: 24px; font-size: 14px;">Link expires in 1 hour. If you didn't request this, ignore this email.</p>
         </div>
       </body>

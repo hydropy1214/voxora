@@ -33,10 +33,10 @@ export interface GatewayConfig {
  * FreeSWITCH containers. FreeSWITCH's sofia profile scans this directory.
  *
  * Layout:
- *   /var/voxora/gateways/<account-id>.xml
+ *   /var/callspsy/gateways/<account-id>.xml
  *
  * FreeSWITCH sofia profile references:
- *   <X-PRE-PROCESS cmd="include" data="/var/voxora/gateways/*.xml"/>
+ *   <X-PRE-PROCESS cmd="include" data="/var/callspsy/gateways/*.xml"/>
  */
 @Injectable()
 export class GatewayManagerService implements OnModuleInit {
@@ -48,7 +48,7 @@ export class GatewayManagerService implements OnModuleInit {
     private esl: FreeswitchEslService,
     private crypto: CryptoService,
   ) {
-    this.gatewayDir = config.get('FREESWITCH_GATEWAY_DIR', '/var/voxora/gateways');
+    this.gatewayDir = config.get('FREESWITCH_GATEWAY_DIR', '/var/callspsy/gateways');
   }
 
   async onModuleInit() {
@@ -97,7 +97,7 @@ export class GatewayManagerService implements OnModuleInit {
       // Kill the gateway in FreeSWITCH if ESL is connected
       if (this.esl.isConnected()) {
         await this.esl.executeApi(
-          'sofia profile voxora_outbound killgw',
+          'sofia profile callspsy_outbound killgw',
           accountId,
         ).catch(() => {}); // Ignore if gateway wasn't registered
       }
@@ -193,7 +193,7 @@ export class GatewayManagerService implements OnModuleInit {
 
     try {
       // sofia profile rescan reads new/changed gateway XML files
-      await this.esl.executeApi('sofia profile voxora_outbound rescan');
+      await this.esl.executeApi('sofia profile callspsy_outbound rescan');
       this.logger.log('FreeSWITCH sofia profile rescanned');
     } catch (e: any) {
       this.logger.warn(`Sofia rescan warning: ${e.message}`);
@@ -208,7 +208,7 @@ export class GatewayManagerService implements OnModuleInit {
 
     return `<?xml version="1.0" encoding="UTF-8"?>
 <!--
-  Voxora SIP Gateway: ${cfg.name}
+  CallsPsy SIP Gateway: ${cfg.name}
   Account ID: ${cfg.id}
   Auto-generated — do not edit manually.
 -->
@@ -245,7 +245,7 @@ export class GatewayManagerService implements OnModuleInit {
 
     <!-- Outbound calls -->
     <param name="outbound-proxy"  value="${outboundProxy}"/>
-    <param name="context"         value="voxora_outbound"/>
+    <param name="context"         value="callspsy_outbound"/>
 
     <!-- Suppress CNG (comfort noise) -->
     <param name="suppress-cng"    value="true"/>

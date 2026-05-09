@@ -6,7 +6,7 @@
 #  1. Writes /etc/freeswitch/vars.xml with actual PUBLIC_IP
 #     → FreeSWITCH uses this in ext-rtp-ip / ext-sip-ip
 #     → Without correct public IP, media goes to wrong address on AWS
-#  2. Creates /var/voxora/gateways/ directory (shared volume)
+#  2. Creates /var/callspsy/gateways/ directory (shared volume)
 #     → Backend writes gateway XML files here
 #     → FreeSWITCH sofia profile includes *.xml from this dir
 #  3. Starts FreeSWITCH
@@ -16,10 +16,10 @@ set -e
 PUBLIC_IP="${PUBLIC_IP:-127.0.0.1}"
 PRIVATE_IP="${PRIVATE_IP:-0.0.0.0}"
 ESL_PASSWORD="${ESL_PASSWORD:-ClueCon}"
-GATEWAY_DIR="/var/voxora/gateways"
+GATEWAY_DIR="/var/callspsy/gateways"
 
 echo "[FS] ============================================"
-echo "[FS] Voxora FreeSWITCH"
+echo "[FS] CallsPsy FreeSWITCH"
 echo "[FS] Public IP:   ${PUBLIC_IP}"
 echo "[FS] Private IP:  ${PRIVATE_IP}"
 echo "[FS] Gateway dir: ${GATEWAY_DIR}"
@@ -30,7 +30,7 @@ cat > /etc/freeswitch/vars.xml << EOF
 <?xml version="1.0"?>
 <include>
   <!--
-    Voxora FreeSWITCH Variables
+    CallsPsy FreeSWITCH Variables
     Auto-generated at container start.
     Public IP: ${PUBLIC_IP}
   -->
@@ -50,7 +50,7 @@ cat > /etc/freeswitch/vars.xml << EOF
 
   <!-- Audio defaults -->
   <X-PRE-PROCESS cmd="set" data="hold_music=silence_stream://0"/>
-  <X-PRE-PROCESS cmd="set" data="use_profile=voxora_outbound"/>
+  <X-PRE-PROCESS cmd="set" data="use_profile=callspsy_outbound"/>
 
   <!-- Sound path (needed by some modules) -->
   <X-PRE-PROCESS cmd="set" data="sound_prefix=/usr/share/freeswitch/sounds/en/us/callie"/>

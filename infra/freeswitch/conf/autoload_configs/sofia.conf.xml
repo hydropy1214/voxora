@@ -1,4 +1,4 @@
-<configuration name="sofia.conf" description="FreeSWITCH Sofia SIP — Voxora">
+<configuration name="sofia.conf" description="FreeSWITCH Sofia SIP — CallsPsy">
   <global_settings>
     <param name="log-level"             value="0"/>
     <param name="auto-restart"          value="false"/>
@@ -9,7 +9,7 @@
   <profiles>
     <!--
       ================================================================
-      Voxora Outbound SIP Profile
+      CallsPsy Outbound SIP Profile
       
       Network layout:
         - bind to $${local_ip_v4}   (private IP, e.g. 172.x.x.x on AWS)
@@ -17,12 +17,12 @@
         → SDP contains public IP so provider media flows correctly
       
       Gateway configs:
-        - Loaded from /var/voxora/gateways/*.xml
+        - Loaded from /var/callspsy/gateways/*.xml
         - Backend writes one XML file per SIP account
-        - 'sofia profile voxora_outbound rescan' picks them up
+        - 'sofia profile callspsy_outbound rescan' picks them up
       ================================================================
     -->
-    <profile name="voxora_outbound">
+    <profile name="callspsy_outbound">
       <domains>
         <domain name="all" alias="false" parse="false"/>
       </domains>
@@ -33,7 +33,7 @@
         <param name="sip-capture"  value="no"/>
 
         <!-- Dialplan context for outbound calls -->
-        <param name="context"      value="voxora_outbound"/>
+        <param name="context"      value="callspsy_outbound"/>
 
         <!--
           RTP/SIP binding: use private IP to bind, public IP in headers.
@@ -50,8 +50,8 @@
         <param name="sip-port"     value="5080"/>
         <param name="tls-sip-port" value="5081"/>
 
-        <!-- Identify as Voxora in User-Agent header -->
-        <param name="user-agent-string" value="Voxora/1.0 (FreeSWITCH)"/>
+        <!-- Identify as CallsPsy in User-Agent header -->
+        <param name="user-agent-string" value="CallsPsy/1.0 (FreeSWITCH)"/>
 
         <!-- Codec preferences: G711 first (most provider compatible) -->
         <param name="inbound-codec-prefs"  value="PCMU,PCMA,G722"/>
@@ -105,10 +105,10 @@
       <gateways>
         <!--
           Per-account gateways are loaded from the shared volume.
-          Backend writes /var/voxora/gateways/<account-id>.xml
-          and calls: sofia profile voxora_outbound rescan
+          Backend writes /var/callspsy/gateways/<account-id>.xml
+          and calls: sofia profile callspsy_outbound rescan
         -->
-        <X-PRE-PROCESS cmd="include" data="/var/voxora/gateways/*.xml"/>
+        <X-PRE-PROCESS cmd="include" data="/var/callspsy/gateways/*.xml"/>
       </gateways>
     </profile>
   </profiles>

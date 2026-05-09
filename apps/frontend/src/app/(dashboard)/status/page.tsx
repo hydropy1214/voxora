@@ -116,7 +116,7 @@ const SERVICE_DOCS: Record<string, { icon: any; what: string; role: string; inst
     icon: Phone,
     what: 'FreeSWITCH v1.10',
     role: 'SIP media server — places outbound calls, plays audio files, detects AMD (human vs voicemail), connects to your SIP providers via ESL API.',
-    install: 'Runs as Docker container signalwire/freeswitch:v1.10. Auto-built with Voxora Lua scripts. No manual install.',
+    install: 'Runs as Docker container signalwire/freeswitch:v1.10. Auto-built with CallsPsy Lua scripts. No manual install.',
   },
   kamailio: {
     icon: Network,
@@ -232,7 +232,7 @@ function ServiceRow({ service }: { service: ServiceStatus }) {
             </div>
           </div>
           <div className="bg-background/60 rounded-lg p-3">
-            <p className="text-xs font-semibold text-muted-foreground mb-1">HOW IT'S INSTALLED</p>
+            <p className="text-xs font-semibold text-muted-foreground mb-1">HOW IT&apos;S INSTALLED</p>
             <p className="text-sm text-muted-foreground">{doc.install}</p>
           </div>
           {service.detail && (
@@ -267,7 +267,7 @@ export default function StatusPage() {
         <div>
           <h1 className="text-2xl font-bold">System Status</h1>
           <p className="text-muted-foreground text-sm mt-1">
-            Real-time health of every Voxora service — click any service to see what it does and how it&apos;s installed.
+            Real-time health of every CallsPsy service — click any service to see what it does and how it&apos;s installed.
           </p>
         </div>
         <button
@@ -341,10 +341,10 @@ export default function StatusPage() {
           </div>
 
           {/* Architecture explainer */}
-          <Section title="How Voxora Works — Architecture Overview" icon={Layers}>
+          <Section title="How CallsPsy Works — Architecture Overview" icon={Layers}>
             <div className="mt-4 space-y-4">
               <p className="text-sm text-muted-foreground leading-relaxed">
-                Voxora is a <strong className="text-foreground">fully self-contained SaaS platform</strong> deployed via Docker Compose.
+                CallsPsy is a <strong className="text-foreground">fully self-contained SaaS platform</strong> deployed via Docker Compose.
                 Every component runs as a Docker container — <strong className="text-foreground">no manual software installation is required</strong> on your server.
                 Just run <code className="bg-muted px-1.5 py-0.5 rounded text-xs font-mono">sudo ./setup.sh</code> and everything is downloaded, configured, and started automatically.
               </p>
@@ -353,7 +353,7 @@ export default function StatusPage() {
                 {[
                   {
                     step: '1', title: 'Web Layer',
-                    desc: 'Users access Voxora through Nginx (port 80/443), which routes to the Next.js frontend (port 3000) and NestJS API (port 3001). Real-time updates flow via Socket.io WebSocket.',
+                    desc: 'Users access CallsPsy through Nginx (port 80/443), which routes to the Next.js frontend (port 3000) and NestJS API (port 3001). Real-time updates flow via Socket.io WebSocket.',
                     services: ['Nginx', 'Next.js', 'NestJS API'],
                   },
                   {
@@ -539,7 +539,7 @@ export default function StatusPage() {
               </table>
               <p className="text-xs text-muted-foreground mt-3 flex items-center gap-1">
                 <Info className="h-3.5 w-3.5" />
-                UDP ports cannot be probed remotely. "Closed" for UDP services may mean unreachable from this server context.
+                UDP ports cannot be probed remotely. &quot;Closed&quot; for UDP services may mean unreachable from this server context.
                 For AWS: verify Security Group rules include 5060/UDP, 3478/UDP, 10000-20000/UDP.
               </p>
             </div>
@@ -636,8 +636,8 @@ UDP  10000-20000 — RTP Media (0.0.0.0/0)`,
                   {
                     step: 3, title: 'Clone and Deploy',
                     content: 'SSH into your instance and run:',
-                    code: `git clone https://github.com/your-org/voxora.git
-cd voxora
+                    code: `git clone https://github.com/your-org/callspsy.git
+cd callspsy
 sudo ./setup.sh`,
                   },
                   {
@@ -647,7 +647,7 @@ sudo ./setup.sh`,
 API:        http://YOUR_EC2_IP:3001/api/docs
 Status:     http://YOUR_EC2_IP:3000/status
 
-Login:  demo@voxora.io / demo123456`,
+Login:  demo@callspsy.com / demo123456`,
                   },
                 ].map(item => (
                   <div key={item.step} className="flex gap-4">

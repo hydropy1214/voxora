@@ -1,4 +1,4 @@
-// Voxora Database Schema
+// CallsPsy Database Schema
 // Multi-tenant SIP voice broadcasting platform
 
 generator client {

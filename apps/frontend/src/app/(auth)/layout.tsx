@@ -1,4 +1,4 @@
-import { Waves } from 'lucide-react'
+import { PhoneCall } from 'lucide-react'
 import Link from 'next/link'
 
 export default function AuthLayout({ children }: { children: React.ReactNode }) {
@@ -17,20 +17,20 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
         <div className="relative z-10">
           <Link href="/" className="flex items-center gap-3">
             <div className="h-10 w-10 rounded-xl gradient-brand flex items-center justify-center">
-              <Waves className="h-5 w-5 text-white" />
+              <PhoneCall className="h-5 w-5 text-white" />
             </div>
-            <span className="text-2xl font-bold text-white">Voxora</span>
+            <span className="text-2xl font-bold text-white">CallsPsy</span>
           </Link>
         </div>
 
         <div className="relative z-10 space-y-8">
           <div className="space-y-4">
             <h1 className="text-4xl font-bold text-white leading-tight">
-              Enterprise Voice<br />
-              <span className="text-gradient">Broadcasting</span>
+              Intelligent Outbound<br />
+              <span className="text-gradient">Voice Campaigns</span>
             </h1>
             <p className="text-brand-200 text-lg max-w-md">
-              Launch outbound voice campaigns at scale with direct SIP protocol. No telecom APIs, no middlemen.
+              Launch outbound voice campaigns at scale with direct SIP protocol. No telecom APIs, no middlemen — just results.
             </p>
           </div>
 
@@ -50,7 +50,9 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
         </div>
 
         <div className="relative z-10 flex items-center gap-3 text-brand-400 text-sm">
-          <span>Powered by FreeSWITCH + Kamailio</span>
+          <span>© 2026 CallsPsy</span>
+          <span>•</span>
+          <span>callspsy.com</span>
           <span>•</span>
           <span>Direct SIP Protocol</span>
         </div>
@@ -61,9 +63,9 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
         <div className="w-full max-w-md">
           <div className="lg:hidden flex items-center gap-3 mb-8">
             <div className="h-9 w-9 rounded-xl gradient-brand flex items-center justify-center">
-              <Waves className="h-4 w-4 text-white" />
+              <PhoneCall className="h-4 w-4 text-white" />
             </div>
-            <span className="text-xl font-bold">Voxora</span>
+            <span className="text-xl font-bold">CallsPsy</span>
           </div>
           {children}
         </div>

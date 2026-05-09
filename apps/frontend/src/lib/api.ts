@@ -11,7 +11,7 @@ export const api = axios.create({
 // Request interceptor - add auth token
 api.interceptors.request.use(config => {
   if (typeof window !== 'undefined') {
-    const state = JSON.parse(localStorage.getItem('voxora-auth') || '{}')
+    const state = JSON.parse(localStorage.getItem('callspsy-auth') || '{}')
     const token = state?.state?.accessToken
     if (token) {
       config.headers.Authorization = `Bearer ${token}`
@@ -31,7 +31,7 @@ api.interceptors.response.use(
 
       try {
         if (typeof window !== 'undefined') {
-          const state = JSON.parse(localStorage.getItem('voxora-auth') || '{}')
+          const state = JSON.parse(localStorage.getItem('callspsy-auth') || '{}')
           const { userId, refreshToken } = state?.state || {}
 
           if (refreshToken && userId) {
@@ -40,7 +40,7 @@ api.interceptors.response.use(
 
             // Update store
             const newState = { ...state, state: { ...state.state, accessToken, refreshToken: newRefresh } }
-            localStorage.setItem('voxora-auth', JSON.stringify(newState))
+            localStorage.setItem('callspsy-auth', JSON.stringify(newState))
 
             original.headers.Authorization = `Bearer ${accessToken}`
             return api(original)
@@ -49,7 +49,7 @@ api.interceptors.response.use(
       } catch {
         // Redirect to login on refresh failure
         if (typeof window !== 'undefined') {
-          localStorage.removeItem('voxora-auth')
+          localStorage.removeItem('callspsy-auth')
           window.location.href = '/login'
         }
       }
